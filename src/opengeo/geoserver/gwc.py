@@ -53,7 +53,9 @@ class Gwc(object):
             "Content-type": "text/xml"            
         }        
         message = layer.xml()        
-        response = self.http.request(layer.href, "POST", message, headers)
+        response = self.http.request(layer.href, "PUT", message, headers)
+        print layer.href
+        print message
         headers, body = response        
         if 400 <= int(headers['status']) < 600:            
             raise FailedRequestError(body)
@@ -61,6 +63,8 @@ class Gwc(object):
 
     
 class GwcLayer(object):
+    
+    headers = {"Content-type": "text/xml"}
 
     def __init__(self, gwc, name, mimetypes = ['image/png'], 
                  gridsets = ['EPSG:4326', 'EPSG:900913'], metaWidth = 4, metaHeight = 4):
@@ -113,22 +117,16 @@ class GwcLayer(object):
         self.metaWidth = metaWidth
         self.metaHeight = metaHeight
         
-        headers = {
-            "Content-type": "text/xml"            
-        }        
         message = self.xml()
-        response = self.gwc.http.request(self.href, "POST", message, headers)
+        response = self.gwc.http.request(self.href, "POST", message, self.headers)
         headers, body = response        
         if 400 <= int(headers['status']) < 600:            
             raise FailedRequestError(body)
         return response
             
     def delete(self):
-        headers = {
-            "Content-type": "text/xml"        
-        }
         
-        response, content = self.gwc.http.request(self.href, "DELETE", headers=headers)
+        response, content = self.gwc.http.request(self.href, "DELETE", headers=self.headers)
 
         if response.status == 200:
             return (response, content)
@@ -136,14 +134,11 @@ class GwcLayer(object):
             raise FailedRequestError(str(response) + content)
             
     def truncate(self):
-        headers = {
-            "Content-type": "text/xml"        
-        }
-        url = self.gwc.url + "masstruncate"
-        print url
+
+        url = self.gwc.url + "masstruncate"        
         
         message = "<truncateLayer><layerName>"  + self.name + "</layerName></truncateLayer>"
-        response, content = self.gwc.http.request(url, "POST", message, headers=headers)
+        response, content = self.gwc.http.request(url, "POST", message, headers=self.headers)
 
         if response.status == 200:
             return (response, content)
@@ -152,6 +147,27 @@ class GwcLayer(object):
 
         
     def seed(self, operation, mimetype, gridset, minzoom, maxzoom, bbox):
-        pass
+        url = self.gwc.url + "seed"
+        
+        root = ET.Element('SeedRequest')        
+        name = ET.SubElement(root, 'name')
+        name.text = self.name
+        bounds = ET.SubElement(root, 'bounds')
+        coords = ET.SubElement(bounds, 'coords')
+        if bbox is not None:            
+            for coord in bbox:
+                coordElement = ET.SubElement(coords, 'double')
+                coordElement.text = str(coord)         
+        gridsetName = ET.SubElement(root, 'gridSetId')
+        gridsetName.text = gridset
+        metaWH = ET.SubElement(root, 'metaWidthHeight')
+        w = ET.SubElement(metaWH, 'int')
+        w.text = str(self.metaWidth)    
+        h = ET.SubElement(metaWH, 'int')
+        h.text = str(self.metaHeight)
+        message = ET.tostring(root)
+                
+        response, content = self.gwc.http.request(url, "POST", message, headers=self.headers)
+        
     
     

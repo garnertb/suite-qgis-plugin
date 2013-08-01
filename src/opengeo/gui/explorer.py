@@ -5,24 +5,26 @@ from opengeo.gui.exploreritems import *
 
 from opengeo.gui.explorertree import ExplorerTreeWidget
 
-class GeoServerExplorer(QtGui.QDockWidget):
+class OpenGeoExplorer(QtGui.QDockWidget):
     
     def __init__(self, parent = None):
-        super(GeoServerExplorer, self).__init__()        
+        super(OpenGeoExplorer, self).__init__()        
         self.initGui()
         
     def initGui(self):    
         self.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)  
         self.dockWidgetContents = QtGui.QWidget()
-        self.setWindowTitle('GeoServer explorer')
+        self.setWindowTitle('OpenGeo explorer')
         self.splitter = QtGui.QSplitter()
-        self.splitter.setOrientation(Qt.Vertical)
-        self.verticalLayout = QtGui.QVBoxLayout(self.splitter)
-        self.verticalLayout.setSpacing(2)
-        self.verticalLayout.setMargin(0)         
+        self.splitter.setOrientation(Qt.Vertical)               
         self.tree = ExplorerTreeWidget(self)                                                                                             
-        self.verticalLayout.addWidget(self.tree)         
-        self.log = QtGui.QTextEdit(self.splitter) 
+        self.splitter.addWidget(self.tree)         
+        self.tabbedPanel = QtGui.QTabWidget()
+        self.descriptionWidget = QtGui.QWidget()              
+        self.log = QtGui.QTextEdit()        
+        self.tabbedPanel.addTab(QtGui.QWidget(), "Description")
+        self.tabbedPanel.addTab(self.log, "Log")
+        self.splitter.addWidget(self.tabbedPanel);
         self.progress = QtGui.QProgressBar()
         self.progress.setMinimum(0)
         self.progress.setMaximum(100)
@@ -61,7 +63,14 @@ class GeoServerExplorer(QtGui.QDockWidget):
     def setInfo(self, msg, error = False):
         if error:
             self.log.append('<ul><li><span style="color:red">ERROR: ' + msg + '</span></li></ul>')
+            self.tabbedPanel.setCurrentIndex(1)
         else:
             self.log.append('<ul><li><span style="color:blue">INFO: ' + msg + '</span></li></ul>')
             
+    def setDescriptionWidget(self, widget):
+        self.tabbedPanel.removeTab(0)
+        self.tabbedPanel.insertTab(0, widget, "Description")
+        self.tabbedPanel.setCurrentIndex(0)
+        
+
     
