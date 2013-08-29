@@ -12,11 +12,11 @@ class TreeItem(QtGui.QTreeWidgetItem):
             self.setIcon(0, icon)   
         self.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)               
             
-    def refreshContent(self):
+    def refreshContent(self, explorer):
         self.takeChildren()        
         if hasattr(self.element, "refresh"):
             self.element.refresh()
-        self.populate()    
+        explorer.run(self.populate, None, [])                
        
     def descriptionWidget(self, tree, explorer):                
         text = self.getDescriptionHtml(tree, explorer)

@@ -68,8 +68,7 @@ class DlgCreateTable(QDialog, Ui_Dialog):
 		self.editGeomSrid.setEnabled(useGeom)
 		self.chkSpatialIndex.setEnabled(useGeom)
 
-	def updateUiFields(self):
-		print "moco"
+	def updateUiFields(self):		
 		fld = self.selectedField()
 		if fld is not None:
 			up_enabled = (fld != 0)

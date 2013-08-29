@@ -52,11 +52,11 @@ class ImportIntoPostGISDialog(QDialog):
 		self.horizontalLayout3.addWidget(self.tableLabel)
 		self.tableBox = QComboBox()
 		schemas = self.connection.schemas()
-		if schemas:
-			tables = [table.name for table in schemas[0].tables()]
-			tables.append("[use file name]")
-			self.tableBox.addItems(tables)
-		self.tableBox.setEditable(True)		
+		tables = [table.name for table in schemas[0].tables()]
+		tables.append("[use file name]")
+		self.tableBox.addItems(tables)		
+		self.tableBox.setEditable(True)
+		self.tableBox.setEditText("[use file name]")		
 		self.tableBox.currentIndexChanged.connect(self.tableChanged)
 		self.horizontalLayout3.addWidget(self.tableBox)
 		self.verticalLayout2.addLayout(self.horizontalLayout3)

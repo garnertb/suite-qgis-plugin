@@ -103,14 +103,14 @@ class GsTreePanel(QtGui.QWidget):
     def fillTree(self):    
         self.tree.clear() 
         QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor)) 
-        self.explorer.progress.setMaximum(7)      
+        self.explorer.setProgressMaximum(7)      
         try:
             groups = self.catalog.get_layergroups()
             for group in groups:
                 groupItem = GsGroupItem(group)
                 groupItem.populate()                                
                 self.tree.addTopLevelItem(groupItem)          
-            self.explorer.progress.setValue(1)
+            self.explorer.setProgress(1)
             cat = self.catalog            
             try:
                 defaultWorkspace = cat.get_default_workspace()
@@ -118,37 +118,37 @@ class GsTreePanel(QtGui.QWidget):
                 defaultName = defaultWorkspace.dom.find('name').text
             except:
                 defaultName = None             
-            self.explorer.progress.setValue(2)
+            self.explorer.setProgress(2)
             workspaces = cat.get_workspaces()
             for workspace in workspaces:
                 workspaceItem = GsWorkspaceItem(workspace, workspace.name == defaultName)
                 workspaceItem.populate()
                 self.tree.addTopLevelItem(workspaceItem)
-            self.explorer.progress.setValue(3)
+            self.explorer.setProgress(3)
             styles = self.catalog.get_styles()
             for style in styles:
                 styleItem = GsStyleItem(style, False)                
                 self.tree.addTopLevelItem(styleItem)
-            self.explorer.progress.setValue(4)                    
+            self.explorer.setProgress(4)                    
             layers = self.catalog.get_layers()
             for layer in layers:
                 layerItem = GsLayerItem(layer)            
                 layerItem.populate()    
                 self.tree.addTopLevelItem(layerItem)
-            self.explorer.progress.setValue(5)                   
+            self.explorer.setProgress(5)                   
             gwc = Gwc(self.catalog)        
             layers = gwc.layers()
             for layer in layers:
                 item = GwcLayerItem(layer)
                 self.tree.addTopLevelItem(item)
-            self.explorer.progress.setValue(6)
+            self.explorer.setProgress(6)
             self.element = Wps(self.catalog)        
             try:
                 processes = self.catalog.processes()
                 for process in processes:
                     item = GsProcessItem(process)
                     self.tree.addTopLevelItem(item)
-                self.explorer.progress.setValue(7)
+                self.explorer.setProgress(7)
             except:
                 #ignore this section if catalog does not have WPS installed
                 pass  
@@ -159,7 +159,7 @@ class GsTreePanel(QtGui.QWidget):
                                    GwcLayersItem(self.catalog), GsProcessesItem(self.catalog)]
                           
         finally:
-            self.explorer.progress.setValue(0)
+            self.explorer.setProgress(0)
             QtGui.QApplication.restoreOverrideCursor()
 
     def toggleVisibility(self, visibleItems = (type(None)), visibleActions = []):

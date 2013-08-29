@@ -16,8 +16,10 @@ class ExplorerTreeWidget(QtGui.QTreeWidget):
         self.header().hide()
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.showTreePopupMenu)
+        self.itemExpanded.connect(self.treeItemExpanded)
         self.itemClicked.connect(self.treeItemClicked) 
-        self.setDragDropMode(QtGui.QTreeWidget.DragDrop)                
+        self.setDragDropMode(QtGui.QTreeWidget.DragDrop)  
+        self.setAutoScroll(True)              
         self.setAcceptDrops(True)
         self.setDropIndicatorShown(True)
         self.catalogs = {}
@@ -52,7 +54,11 @@ class ExplorerTreeWidget(QtGui.QTreeWidget):
             self.explorer.setToolbarActions(actions)
     
     def lastClickedItem(self):
-        return self.lastClicked
+        return self.lastClicked                   
+        
+    def treeItemExpanded(self, item):
+        if item is not None and not item.childCount():            
+            item.refreshContent(self.explorer)      
     
     def showTreePopupMenu(self,point):
         allTypes = self.getSelectionTypes()                
@@ -88,7 +94,7 @@ class ExplorerTreeWidget(QtGui.QTreeWidget):
         menu = QtGui.QMenu()
         if (isinstance(self.selectedItem, TreeItem) and hasattr(self.selectedItem, 'populate')):            
             refreshAction = QtGui.QAction("Refresh", None)
-            refreshAction.triggered.connect(self.selectedItem.refreshContent)
+            refreshAction.triggered.connect(lambda: self.selectedItem.refreshContent(self.explorer))
             menu.addAction(refreshAction) 
         point = self.mapToGlobal(point)    
         actions = self.selectedItem.contextMenuActions(self, self.explorer)
@@ -144,7 +150,9 @@ class ExplorerTreeWidget(QtGui.QTreeWidget):
         if isinstance(event.source(), self.__class__):
             self.dropExplorerItemEvent(event)
         else:
-            destinationItem=self.itemAt(event.pos())        
+            destinationItem=self.itemAt(event.pos()) 
+            if destinationItem is None: 
+                return       
             mimeData = event.mimeData()
             elements = []            
             for mimeFormat in mimeData.formats():                
@@ -157,14 +165,14 @@ class ExplorerTreeWidget(QtGui.QTreeWidget):
                     elements.append(mimeUri)            
             if elements:
                 destinationItem.startDropEvent()
-                self.explorer.progress.setMaximum(len(elements))
+                self.explorer.setProgressMaximum(len(elements))
                 toUpdate = set()
                 for i, element in enumerate(elements):
                     destinationItem.acceptDroppedUri(self.explorer, element)                                                                            
-                    self.explorer.progress.setValue(i)                
+                    self.explorer.setProgress(i)                
                 toUpdate = destinationItem.finishDropEvent(self, self.explorer)
                 for item in toUpdate:
-                    item.refreshContent()        
+                    item.refreshContent(self.explorer)        
                 self.explorer.resetActivity()
                 event.acceptProposedAction()    
  
@@ -176,7 +184,7 @@ class ExplorerTreeWidget(QtGui.QTreeWidget):
             return            
         
         selected = self.selectedItems()
-        self.explorer.progress.setMaximum(len(selected))
+        self.explorer.setProgressMaximum(len(selected))
         i = 0
         toUpdate = set()
         for item in selected:
@@ -184,11 +192,11 @@ class ExplorerTreeWidget(QtGui.QTreeWidget):
             if updatable is not None:  
                 toUpdate.update(updatable)                                      
             i += 1
-            self.explorer.progress.setValue(i)
+            self.explorer.setProgress(i)
         
         for item in toUpdate:
-            item.refreshContent()        
-        self.explorer.progress.setValue(0)
+            item.refreshContent(self.explorer)        
+        self.explorer.resetActivity()
         event.acceptProposedAction()
         
         

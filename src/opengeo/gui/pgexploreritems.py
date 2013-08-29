@@ -86,10 +86,13 @@ class PgConnectionItem(TreeItem):
         if self.element.isValid:            
             icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/add.png")
             newSchemaAction = QtGui.QAction(icon, "New schema...", explorer)
-            newSchemaAction.triggered.connect(lambda: self.newSchema(explorer)) 
-            sqlAction = QtGui.QAction("Run SQL...", explorer)
+            newSchemaAction.triggered.connect(lambda: self.newSchema(explorer))
+            icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/sql_window.png")  
+            sqlAction = QtGui.QAction(icon, "Run SQL...", explorer)
             sqlAction.triggered.connect(self.runSql)     
-            importAction = QtGui.QAction("Import files...", explorer)
+            icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/import.png") 
+            importAction = QtGui.QAction(icon, "Import files...", explorer)
+            importAction.setEnabled(self.childCount() != 0)
             importAction.triggered.connect(lambda: self.importIntoDatabase(explorer))                                        
             return [newSchemaAction, sqlAction, importAction]
         else:
@@ -106,7 +109,7 @@ class PgConnectionItem(TreeItem):
 
     def linkClicked(self, tree, explorer, url):
         if not self.element.isValid:
-            self.refreshContent()
+            self.refreshContent(explorer)
         else:
             TreeItem.linkClicked(self, tree, explorer, url)        
              
@@ -128,8 +131,9 @@ class PgConnectionItem(TreeItem):
             dlg = ImportIntoPostGISDialog(self.element, files = files)
             dlg.exec_()
             if dlg.files is not None:            
+                explorer.setProgressMaximum(len(dlg.files))
                 for i, filename in enumerate(dlg.files):
-                    explorer.progress.setValue(i)
+                    explorer.setProgress(i)
                     explorer.run(importFile, "Import " + filename + "  into database " + self.element.name,
                     [],
                     filename, self.element, dlg.schema, dlg.tablename, not dlg.add)        
@@ -141,13 +145,14 @@ class PgConnectionItem(TreeItem):
     def importIntoDatabase(self, explorer):           
         dlg = ImportIntoPostGISDialog(self.element)
         dlg.exec_()
-        if dlg.ok:            
+        if dlg.ok:  
+            explorer.setProgressMaximum(len(dlg.files))          
             for i, filename in enumerate(dlg.files):
-                explorer.progress.setValue(i)
+                explorer.setProgress(i)
                 explorer.run(importFile, "Import" + filename + " into database " + self.element.name,
                 [],
                 filename, self.element, dlg.schema, dlg.tablename, not dlg.add)
-        self.refreshContent()
+        self.refreshContent(explorer)
           
     def runSql(self):
         pass
@@ -178,23 +183,26 @@ class PgSchemaItem(TreeItem):
         newTableAction.triggered.connect(lambda: self.newTable(explorer))
         icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/delete.gif")                                                                    
         deleteAction= QtGui.QAction(icon, "Delete", explorer)
-        deleteAction.triggered.connect(lambda: self.deleteSchema(explorer))  
-        renameAction= QtGui.QAction("Rename...", explorer)
+        deleteAction.triggered.connect(lambda: self.deleteSchema(explorer)) 
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/rename.png") 
+        renameAction= QtGui.QAction(icon, "Rename...", explorer)
         renameAction.triggered.connect(lambda: self.renameSchema(explorer))
-        importAction = QtGui.QAction("Import files...", explorer)
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/import.png")
+        importAction = QtGui.QAction(icon, "Import files...", explorer)
         importAction.triggered.connect(lambda: self.importIntoSchema(explorer))                            
         return [newTableAction, deleteAction, renameAction, importAction]
 
     def importIntoSchema(self, explorer):
         dlg = ImportIntoPostGISDialog(self.element.conn, self.element.name)
         dlg.exec_()
-        if dlg.ok:            
+        if dlg.ok:        
+            explorer.setProgressMaximum(len(dlg.files))    
             for i, filename in enumerate(dlg.files):
-                explorer.progress.setValue(i)
+                explorer.setProgress.setValue(i)
                 explorer.run(importFile, "Import " + filename + " into database " + self.element.conn.name,
                 [],
                 filename, self.element.conn, dlg.schema, dlg.tablename, not dlg.add)
-        self.refreshContent()
+        self.refreshContent(explorer)
         
     def deleteSchema(self, explorer):
         explorer.run(self.element.conn.geodb.delete_schema, 
@@ -231,9 +239,10 @@ class PgSchemaItem(TreeItem):
                     pass            
             dlg = ImportIntoPostGISDialog(self.element, schema = self.element, files = files)
             dlg.exec_()
-            if dlg.files is not None:            
+            if dlg.files is not None: 
+                explorer.setProgressMaximum(len(dlg.files))           
                 for i, filename in enumerate(dlg.files):
-                    explorer.progress.setValue(i)
+                    explorer.setProgress(i)
                     explorer.run(importFile, "Import" + filename + " into database " + self.element.name,
                     [],
                     filename, self.element.conn, dlg.schema, dlg.tablename, not dlg.add)        
@@ -269,13 +278,15 @@ class PgTableItem(TreeItem):
         return tableIcon
     
     def contextMenuActions(self, tree, explorer):        
-        publishPgTableAction = QtGui.QAction("Publish...", explorer)
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/publish-to-geoserver.png") 
+        publishPgTableAction = QtGui.QAction(icon, "Publish...", explorer)
         publishPgTableAction.triggered.connect(lambda: self.publishPgTable(tree, explorer))            
         publishPgTableAction.setEnabled(len(explorer.catalogs()) > 0) 
         icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/delete.gif")     
         deleteAction= QtGui.QAction(icon, "Delete", explorer)
         deleteAction.triggered.connect(lambda: self.deleteTable(explorer))  
-        renameAction= QtGui.QAction("Rename...", explorer)
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/rename.png") 
+        renameAction= QtGui.QAction(icon, "Rename...", explorer)
         renameAction.triggered.connect(lambda: self.renameTable(explorer))                 
         vacuumAction= QtGui.QAction("Vacuum analyze", explorer)
         vacuumAction.triggered.connect(lambda: self.vacuumTable(explorer))
@@ -358,8 +369,7 @@ def importFile(filename, connection, schema, tablename, overwrite):
     if not layer.isValid() or layer.type() != QgsMapLayer.VectorLayer:
         layer.deleteLater()
         raise WrongLayerFileError("Error reading file {} or it is not a valid vector layer file".format(filename))
-                
-    print options
+
     ret, errMsg = QgsVectorLayerImport.importLayer(layer, uri.uri(), providerName, layer.crs(), False, False, options)
     if ret != 0:
         raise Exception(errMsg)

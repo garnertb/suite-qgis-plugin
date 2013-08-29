@@ -1,3 +1,4 @@
+import os
 from PyQt4 import QtGui
 from PyQt4.QtCore import *
 from opengeo.gui.explorertree import ExplorerTreeWidget
@@ -5,7 +6,8 @@ from opengeo.gui.gsexploreritems import GsCatalogsItem
 from opengeo.gui.pgexploreritems import PgConnectionsItem
 from opengeo.gui.qgsexploreritems import QgsProjectItem
 from opengeo.gui.treepanels import GsTreePanel, QgsTreePanel, PgTreePanel
-import os
+from opengeo.gui.geogitexploreritems import GeogitRepositoriesItem
+
 
 class ExplorerWidget(QtGui.QWidget):
     def __init__(self, explorer, singletab = False):         
@@ -30,14 +32,15 @@ class ExplorerWidget(QtGui.QWidget):
         
     def fillData(self):        
         if self.singletab:                                     
-            self.gsItem = GsCatalogsItem()                
-            self.gsItem.populate()
+            self.gsItem = GsCatalogsItem()                            
             self.pgItem = PgConnectionsItem()
             self.pgItem.populate()
+            self.geogitItem = GeogitRepositoriesItem()                            
             self.qgsItem = QgsProjectItem()                
             self.qgsItem.populate()
             self.tree.addTopLevelItem(self.gsItem)                         
-            self.tree.addTopLevelItem(self.pgItem)                      
+            self.tree.addTopLevelItem(self.pgItem)
+            self.tree.addTopLevelItem(self.ujoItem)                      
             self.tree.addTopLevelItem(self.qgsItem) 
         else:                                
             gsIcon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/geoserver.png")
@@ -70,7 +73,7 @@ class ExplorerWidget(QtGui.QWidget):
 
     def updateQgisContent(self):        
         if self.singletab:
-            self.qgsItem.refreshContent()
+            self.qgsItem.refreshContent(self.explorer)
         else:
             self.qgsPanel.refreshContent()
             

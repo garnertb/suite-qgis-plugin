@@ -10,12 +10,15 @@ class SldEditorDialog(QtGui.QDialog):
     
     def __init__(self, style, explorer, parent = None):
         super(SldEditorDialog, self).__init__(parent)
+        
         self.style = style  
         self.explorer = explorer          
         self.initGui()        
         
     def initGui(self):   
-        self.resize(600, 350)                      
+        self.resize(600, 350)    
+        self.setWindowFlags(self.windowFlags() | Qt.WindowSystemMenuHint |
+                                                Qt.WindowMinMaxButtonsHint)                  
         self.setWindowTitle('Edit SLD style')
         
         layout = QtGui.QVBoxLayout()                                
