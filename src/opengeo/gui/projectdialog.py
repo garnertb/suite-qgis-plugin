@@ -35,9 +35,18 @@ class PublishProjectDialog(QtGui.QDialog):
         horizontalLayout.setMargin(0)        
         workspaceLabel = QtGui.QLabel('Workspace')
         self.workspaceBox = QtGui.QComboBox()     
-        self.workspaces = self.catalogs[self.catalogs.keys()[0]].get_workspaces()
-        workspaceNames = [w.name for w in self.workspaces]
+        cat = self.catalogs[self.catalogs.keys()[0]]      
+        self.workspaces = cat.get_workspaces()        
+        try:
+            defaultWorkspace = cat.get_default_workspace()
+            defaultWorkspace.fetch()
+            defaultName = defaultWorkspace.dom.find('name').text
+        except:
+            defaultName = None                  
+        workspaceNames = [w.name for w in self.workspaces]        
         self.workspaceBox.addItems(workspaceNames)
+        if defaultName is not None:
+            self.workspaceBox.setCurrentIndex(workspaceNames.index(defaultName))
         horizontalLayout.addWidget(workspaceLabel)
         horizontalLayout.addWidget(self.workspaceBox)
         verticalLayout.addLayout(horizontalLayout)
@@ -71,11 +80,19 @@ class PublishProjectDialog(QtGui.QDialog):
         self.resize(400,200) 
         
     def catalogHasChanged(self):
-        catalog = self.catalogs[self.catalogBox.currentText()]
-        self.workspaces = catalog.get_workspaces()
+        catalog = self.catalogs[self.catalogBox.currentText()]                        
+        self.workspaces = catalog.get_workspaces()        
+        try:
+            defaultWorkspace = catalog.get_default_workspace()
+            defaultWorkspace.fetch()
+            defaultName = defaultWorkspace.dom.find('name').text
+        except:
+            defaultName = None                  
         workspaceNames = [w.name for w in self.workspaces]
-        self.workspaceBox.clear()
-        self.workspaceBox.addItems(workspaceNames)              
+        self.workspaceBox.clear()        
+        self.workspaceBox.addItems(workspaceNames)
+        if defaultName is not None:
+            self.workspaceBox.setCurrentIndex(workspaceNames.index(defaultName))            
     
     def okPressed(self):                
         self.catalog = self.catalogs[self.catalogBox.currentText()]

@@ -159,11 +159,14 @@ class OpenGeoExplorer(QtGui.QDockWidget):
         
     def setInfo(self, msg, msgtype = INFO):
         if msgtype == ERROR:
+            if self.progressMaximum != 0:
+                self.resetActivity()
             config.iface.messageBar().pushMessage("Error", msg, 
                                                   level = config.iface.messageBar().CRITICAL,
                                                   duration = 5)            
-        elif msgtype == INFO:
-            config.iface.messageBar().pushMessage("Info", msg, 
+        else:
+            if self.progressMaximum == 0: #ignore if there is a progress bar
+                config.iface.messageBar().pushMessage("Info", msg, 
                                                   level = config.iface.messageBar().INFO,
                                                   duration = 5)
                    

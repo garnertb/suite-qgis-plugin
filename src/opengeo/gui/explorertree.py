@@ -126,7 +126,7 @@ class ExplorerTreeWidget(QtGui.QTreeWidget):
     QGIS_URI_MIME = "application/x-vnd.qgis.qgis.uri"
  
     def mimeTypes(self):
-        return ["application/x-qabstractitemmodeldatalist", self.QGIS_URI_MIME]
+        return ["text/uri-list", self.QGIS_URI_MIME]
      
     def mimeData(self, items):        
         mimeData = QtGui.QTreeWidget.mimeData(self, items)               
@@ -136,11 +136,11 @@ class ExplorerTreeWidget(QtGui.QTreeWidget):
         for item in items:
             if isinstance(item, GsLayerItem):                
                 layer = item.element
-                uri = gsutils.mimeUri(layer)                                
+                uri = gsutils.mimeUri(layer)                                             
                 stream.writeQString(uri)
             elif isinstance(item, PgTableItem):
                 table = item.element
-                uri = pgutils.mimeUri(table)                          
+                uri = pgutils.mimeUri(table)                                
                 stream.writeQString(uri)                
   
         mimeData.setData(self.QGIS_URI_MIME, encodedData)        
@@ -165,11 +165,10 @@ class ExplorerTreeWidget(QtGui.QTreeWidget):
                     elements.append(mimeUri)            
             if elements:
                 destinationItem.startDropEvent()
-                self.explorer.setProgressMaximum(len(elements))
                 toUpdate = set()
                 for i, element in enumerate(elements):
-                    destinationItem.acceptDroppedUri(self.explorer, element)                                                                            
-                    self.explorer.setProgress(i)                
+                    element = element.replace("\\", "")
+                    destinationItem.acceptDroppedUri(self.explorer, element)                                                                                                         
                 toUpdate = destinationItem.finishDropEvent(self, self.explorer)
                 for item in toUpdate:
                     item.refreshContent(self.explorer)        

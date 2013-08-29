@@ -1021,18 +1021,18 @@ class GsWorkspaceItem(GsTreeItem):
     def acceptDroppedUri(self, explorer, uri):        
         self.uris.append(uri) 
     
-    def finishDropEvent(self, tree, explorer):        
+    def finishDropEvent(self, tree, explorer):      
         if self.uris:
             catalog = self.parentCatalog()
             files = []
             for uri in self.uris:
                 try:
                     files.append(uri.split(":",3)[-1])
-                except Exception, e:                    
-                    pass            
-            workspace = self.element                            
-            for i, filename in enumerate(files):
-                explorer.setProgress(i)
+                except Exception, e:                                     
+                    pass          
+            workspace = self.element   
+            explorer.setProgressMaximum(len(files))                         
+            for i, filename in enumerate(files):                
                 layerName = QtCore.QFileInfo(filename).completeBaseName()
                 layer = QgsVectorLayer(filename, layerName, "ogr")    
                 if not layer.isValid() or layer.type() != QgsMapLayer.VectorLayer:
@@ -1040,6 +1040,7 @@ class GsWorkspaceItem(GsTreeItem):
                     explorer.setInfo("Error reading file {} or it is not a valid vector layer file".format(filename), 1)                                
                 else:
                     publishDraggedLayer(explorer, layer, workspace)
+                explorer.setProgress(i + 1)
             return [tree.findAllItems(catalog)[0]]
         else:
             return []        

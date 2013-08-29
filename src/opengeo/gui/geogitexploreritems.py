@@ -219,10 +219,8 @@ class GeogitWorkTreeItem(TreeItem):
     def linkClicked(self, tree, explorer, url):
         url  = url.toString()
         for diff in self.diffs:
-            if url == diff.path:
-                ref = self.element.commit.ref
-                repo = self.element.commit.repo
-                dlg = DiffDialog(repo, ref, ref + "~1")
+            if url == diff.path:                
+                dlg = DiffDialog(self.element, geogit.HEAD, geogit.WORK_HEAD)
                 dlg.exec_()
                 return            
         actions = self.contextMenuActions(tree, explorer)

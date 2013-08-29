@@ -40,7 +40,7 @@ class ExplorerWidget(QtGui.QWidget):
             self.qgsItem.populate()
             self.tree.addTopLevelItem(self.gsItem)                         
             self.tree.addTopLevelItem(self.pgItem)
-            self.tree.addTopLevelItem(self.ujoItem)                      
+            self.tree.addTopLevelItem(self.geogitItem)                      
             self.tree.addTopLevelItem(self.qgsItem) 
         else:                                
             gsIcon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/geoserver.png")
