@@ -1,5 +1,5 @@
 from PyQt4 import QtGui, QtCore
-from refwidget import RefWidget
+from dialogs.geogitref import RefWidget
 
 
 class CreateBranchDialog(QtGui.QDialog):

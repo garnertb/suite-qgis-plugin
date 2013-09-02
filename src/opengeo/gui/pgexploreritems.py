@@ -3,11 +3,11 @@ from PyQt4 import QtGui, QtCore
 from qgis.core import *
 from opengeo.postgis.connection import PgConnection
 from opengeo.gui.exploreritems import TreeItem
-from opengeo.gui.layerdialog import PublishLayerDialog
-from opengeo.gui.userpasswd import UserPasswdDialog
-from opengeo.gui.importvector import ImportIntoPostGISDialog
-from opengeo.gui.pgconnectiondialog import NewPgConnectionDialog
-from opengeo.gui.createtable import DlgCreateTable
+from dialogs.layerdialog import PublishLayerDialog
+from dialogs.userpasswd import UserPasswdDialog
+from dialogs.importvector import ImportIntoPostGISDialog
+from dialogs.pgconnectiondialog import NewPgConnectionDialog
+from dialogs.createtable import DlgCreateTable
 
 pgIcon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/pg.png")   
  
@@ -237,7 +237,7 @@ class PgSchemaItem(TreeItem):
                     files.append(uri.split(":",3)[-1])
                 except Exception, e:
                     pass            
-            dlg = ImportIntoPostGISDialog(self.element, schema = self.element, files = files)
+            dlg = ImportIntoPostGISDialog(self.element.conn, schema = self.element, files = files)
             dlg.exec_()
             if dlg.files is not None: 
                 explorer.setProgressMaximum(len(dlg.files))           

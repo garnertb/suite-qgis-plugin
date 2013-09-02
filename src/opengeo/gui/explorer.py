@@ -74,8 +74,7 @@ class OpenGeoExplorer(QtGui.QDockWidget):
         else:
             self.splitter.setOrientation(Qt.Vertical)                
 
-    def setToolbarActions(self, actions):        
-        icon = None#QtGui.QIcon(os.path.dirname(__file__) + "/../images/add.png")
+    def setToolbarActions(self, actions):                
         self.toolbar.clear()
         for action in actions:
             if action.icon().isNull():
@@ -91,6 +90,7 @@ class OpenGeoExplorer(QtGui.QDockWidget):
             button = QtGui.QPushButton()
             button.setIcon(action.icon())
             button.setToolTip(action.text())
+            button.setEnabled(action.isEnabled())
             button.clicked.connect(action.trigger)                           
             self.toolbar.addWidget(button)
             
@@ -158,17 +158,17 @@ class OpenGeoExplorer(QtGui.QDockWidget):
         self.progressMaximum = value
         
     def setInfo(self, msg, msgtype = INFO):
+        print str(self.progressMaximum)
         if msgtype == ERROR:
             if self.progressMaximum != 0:
                 self.resetActivity()
             config.iface.messageBar().pushMessage("Error", msg, 
-                                                  level = config.iface.messageBar().CRITICAL,
-                                                  duration = 5)            
+                                                  level = config.iface.messageBar().CRITICAL,                                                  
+                                                  duration = 3)            
         else:
-            if self.progressMaximum == 0: #ignore if there is a progress bar
-                config.iface.messageBar().pushMessage("Info", msg, 
+            config.iface.messageBar().pushMessage("Info", msg, 
                                                   level = config.iface.messageBar().INFO,
-                                                  duration = 5)
+                                                  duration = 3)
                    
             
     def setDescriptionWidget(self, widget = None):                

@@ -12,15 +12,14 @@ from opengeo.gui.pgexploreritems import PgConnectionsItem, PgSchemaItem
 from opengeo.gui.qgsexploreritems import QgsProjectItem, QgsGroupItem,\
     QgsLayerItem, QgsStyleItem
 from opengeo.geoserver.wps import Wps
-from opengeo.gui.catalogdialog import DefineCatalogDialog
+from dialogs.catalogdialog import DefineCatalogDialog
 
 class GsTreePanel(QtGui.QWidget):
     
     def __init__(self, explorer):                 
         QtGui.QWidget.__init__(self, None) 
         self.explorer = explorer
-        self.catalogs = {}
-        #self.catalogsItem = GsCatalogsItem()                    
+        self.catalogs = {}                        
         verticalLayout = QtGui.QVBoxLayout()
         verticalLayout.setSpacing(2)
         verticalLayout.setMargin(0)      

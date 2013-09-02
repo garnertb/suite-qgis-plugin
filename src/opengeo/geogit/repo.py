@@ -78,8 +78,8 @@ class Repository:
     def checkout(self, ref, path):
         return self.connector.checkout(ref)
     
-    def add(self):
-        return self.connector.add()
+    def add(self, paths = []):
+        return self.connector.add(paths)
 
     def commit(self, message, paths = []):
         return self.connector.commit(message, paths)

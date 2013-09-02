@@ -8,15 +8,16 @@ from opengeo.geogit.repo import Repository
 from opengeo.geogit.cliconnector import CLIConnector
 from opengeo import geogit
 from opengeo.qgis import utils
-from opengeo.gui.geogitimportdialog import ImportAndCommitDialog, ImportDialog
+from dialogs.geogitimportdialog import ImportAndCommitDialog, ImportDialog
 from opengeo.qgis.exporter import exportVectorLayer
 from opengeo.geogit.geogitexception import GeoGitException
 from opengeo.geogit import diff
 from opengeo.gui.createbranch import CreateBranchDialog
-from opengeo.gui.diffdialog import DiffDialog
+from dialogs.diffdialog import DiffDialog
 from opengeo.geogit.diff import TYPE_ADDED, TYPE_MODIFIED
-from opengeo.gui.refwidget import RefDialog
+from dialogs.geogitref import RefDialog
 from opengeo.gui.commitdialog import CommitDialog
+from opengeo.gui.dialogs.twowaydiff import TwoWayDiffViewerDialog
 
 geogitIcon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/geogit.png")
 repoIcon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/repo.gif")   
@@ -32,11 +33,11 @@ class GeogitRepositoriesItem(TreeItem):
         TreeItem.__init__(self, None, geogitIcon, "Geogit repositories") 
                  
     def contextMenuActions(self, tree, explorer):  
-        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/add.png")      
-        createRepoAction = QtGui.QAction(icon, "Create new repository...", explorer)
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/init.png")      
+        createRepoAction = QtGui.QAction(icon, "Init/create new repository...", explorer)
         createRepoAction.triggered.connect(lambda: self.addGeogitRepo(explorer, True))
         icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/add.png")      
-        createRepoConnectionAction = QtGui.QAction(icon, "Add new repository connection...", explorer)
+        createRepoConnectionAction = QtGui.QAction(icon, "Add new repository...", explorer)
         createRepoConnectionAction.triggered.connect(lambda: self.addGeogitRepo(explorer, False))
         return [createRepoAction, createRepoConnectionAction]
 
@@ -157,14 +158,10 @@ class GeogitRepositoryItem(TreeItem):
         dlg = ImportAndCommitDialog()
         dlg.exec_()
         if dlg.layer is not None:
-            def _importAndCommit():
-                #explorer.setProgressMaximum(3)                
+            def _importAndCommit():              
                 self.element.importshp(exportVectorLayer(dlg.layer), dest = dlg.layer.name())
-                #explorer.setProgress(1)
                 self.element.add()
-                #explorer.setProgressMaximum(2)
                 self.element.commit(dlg.message)
-                #explorer.setProgressMaximum(3)
             explorer.run(_importAndCommit, "Import layer into repository and commit", [self]) 
             
     
@@ -219,8 +216,8 @@ class GeogitWorkTreeItem(TreeItem):
     def linkClicked(self, tree, explorer, url):
         url  = url.toString()
         for diff in self.diffs:
-            if url == diff.path:                
-                dlg = DiffDialog(self.element, geogit.HEAD, geogit.WORK_HEAD)
+            if url == diff.path:             
+                dlg = TwoWayDiffViewerDialog(self.element.getfeaturediffs(geogit.HEAD, geogit.WORK_HEAD, url))                   
                 dlg.exec_()
                 return            
         actions = self.contextMenuActions(tree, explorer)
@@ -233,8 +230,10 @@ class GeogitWorkTreeItem(TreeItem):
         dlg = CommitDialog(self.element)
         dlg.exec_()
         if dlg.getPaths():
-            self.element.commit(dlg.getMessage(), dlg.getPaths())
-            self.refreshContent(explorer)
+            def _commit():
+                self.element.add(dlg.getPaths())
+                self.element.commit(dlg.getMessage())
+            explorer.run(_commit, "Commit changes inworking tree", [self.parent()])             
         
 class GeogitCommitItem(TreeItem):
      
@@ -265,7 +264,21 @@ class GeogitCommitItem(TreeItem):
             html += ('<li><b><font color="' + colorFromType(diff.type()) +'">' + diff.path 
                     + '</font></b>  &nbsp;<a href="' + diff.path + '">View change</a></li>\n')
             
-        return html  
+        return html      
+
+    def linkClicked(self, tree, explorer, url):
+        url  = url.toString()
+        for diff in self.element.diffset:
+            if url == diff.path:             
+                dlg = TwoWayDiffViewerDialog(self.element.commit.repo.getfeaturediffs(geogit.HEAD, geogit.WORK_HEAD, url))                   
+                dlg.exec_()
+                return            
+        actions = self.contextMenuActions(tree, explorer)
+        for action in actions:
+            if action.text() == url:
+                action.trigger()
+                return    
+                
     
     def contextMenuActions(self, tree, explorer): 
         compareAction = QtGui.QAction("Compare with working tree...", explorer)

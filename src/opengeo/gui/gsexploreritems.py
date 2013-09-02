@@ -1,19 +1,19 @@
 import os
 from qgis.core import *
-from PyQt4 import QtGui,QtCore, QtWebKit
+from PyQt4 import QtGui,QtCore
 from PyQt4.QtCore import *
 from opengeo.qgis import layers as qgislayers
 from opengeo.geoserver.store import DataStore
 from opengeo.geoserver.resource import Coverage, FeatureType
 from opengeo.geoserver.gwc import Gwc, GwcLayer, SeedingStatusParsingError
-from opengeo.gui.catalogdialog import DefineCatalogDialog
+from dialogs.catalogdialog import DefineCatalogDialog
 from opengeo.geoserver.style import Style
 from opengeo.geoserver.layer import Layer
-from opengeo.gui.styledialog import AddStyleToLayerDialog, StyleFromLayerDialog
+from dialogs.styledialog import AddStyleToLayerDialog, StyleFromLayerDialog
 from opengeo.qgis.catalog import OGCatalog
 from opengeo.gui.exploreritems import TreeItem
-from opengeo.gui.groupdialog import LayerGroupDialog
-from opengeo.gui.workspacedialog import DefineWorkspaceDialog
+from dialogs.groupdialog import LayerGroupDialog
+from dialogs.workspacedialog import DefineWorkspaceDialog
 from opengeo.gui.gwclayer import SeedGwcLayerDialog, EditGwcLayerDialog
 from opengeo.geoserver.layergroup import UnsavedLayerGroup
 from opengeo.gui.qgsexploreritems import QgsLayerItem, QgsGroupItem,\
@@ -22,10 +22,10 @@ from opengeo.geoserver.catalog import FailedRequestError
 from opengeo.gui.pgexploreritems import PgTableItem
 import traceback
 from opengeo.geoserver.wps import Wps
-from opengeo.gui.crsdialog import CrsSelectionDialog
+from dialogs.crsdialog import CrsSelectionDialog
 from opengeo.geoserver.settings import Settings
 from opengeo.gui.parametereditor import ParameterEditor
-from opengeo.gui.sldeditor import SldEditorDialog
+from dialogs.sldeditor import SldEditorDialog
 
 class GsTreeItem(TreeItem):
     
@@ -575,11 +575,11 @@ class GsLayerItem(GsTreeItem):
         html += '<li><b>Name: </b>' + str(self.element.name) + '</li>\n'
         html += '<li><b>Title: </b>' + str(self.element.resource.title) + ' &nbsp;<a href="modify:title">Modify</a></li>\n'     
         html += '<li><b>Abstract: </b>' + str(self.element.resource.abstract) + ' &nbsp;<a href="modify:abstract">Modify</a></li>\n'
-        html += ('<li><b>SRS: </b>' + str(self.element.resource.projection) + ' &nbsp;<a href="modify:srs">Modify</a> '
-                                    '&nbsp;<a href="modify:setinproject">Set as project SRS</a></li>\n')        
+        html += ('<li><b>SRS: </b>' + str(self.element.resource.projection) + ' &nbsp;<a href="modify:srs">Modify</a></li>\n')        
         bbox = self.element.resource.latlon_bbox
         if bbox is not None:
-            html += '<li><b>Bounding box (lat/lon): </b> &nbsp;<a href="modify:zoomtobbox">Zoom to this bbox</a></li>\n<ul>'        
+            #html += '<li><b>Bounding box (lat/lon): </b> &nbsp;<a href="modify:zoomtobbox">Zoom to this bbox</a></li>\n<ul>'        
+            html += '<li><b>Bounding box (lat/lon): </b></li>\n<ul>'
             html += '<li> N:' + str(bbox[3]) + '</li>'
             html += '<li> S:' + str(bbox[2]) + '</li>'
             html += '<li> E:' + str(bbox[0]) + '</li>'
@@ -1023,21 +1023,19 @@ class GsWorkspaceItem(GsTreeItem):
     
     def finishDropEvent(self, tree, explorer):      
         if self.uris:
-            catalog = self.parentCatalog()
-            files = []
-            for uri in self.uris:
-                try:
-                    files.append(uri.split(":",3)[-1])
-                except Exception, e:                                     
-                    pass          
+            catalog = self.parentCatalog()                                                              
             workspace = self.element   
-            explorer.setProgressMaximum(len(files))                         
-            for i, filename in enumerate(files):                
-                layerName = QtCore.QFileInfo(filename).completeBaseName()
-                layer = QgsVectorLayer(filename, layerName, "ogr")    
+            explorer.setProgressMaximum(len(self.uris))                                     
+            for i, uri in enumerate(self.uris):                
+                if isinstance(uri, basestring):
+                    layerName = QtCore.QFileInfo(uri).completeBaseName()
+                    layer = QgsVectorLayer(uri, layerName, "ogr")
+                else:                                       
+                    layer = QgsVectorLayer(uri.uri, uri.name, uri.providerKey)    
                 if not layer.isValid() or layer.type() != QgsMapLayer.VectorLayer:
                     layer.deleteLater()
-                    explorer.setInfo("Error reading file {} or it is not a valid vector layer file".format(filename), 1)                                
+                    name = uri if isinstance(uri, basestring) else uri.uri 
+                    explorer.setInfo("Error reading file {} or it is not a valid vector layer file".format(uri), 1)                                
                 else:
                     publishDraggedLayer(explorer, layer, workspace)
                 explorer.setProgress(i + 1)

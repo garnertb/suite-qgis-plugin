@@ -3,11 +3,11 @@ from PyQt4 import QtGui,QtCore
 from PyQt4.QtCore import *
 from opengeo.gui.exploreritems import TreeItem
 from opengeo.qgis import layers as qgislayers
-from opengeo.gui.styledialog import PublishStyleDialog
+from dialogs.styledialog import PublishStyleDialog
 from opengeo.qgis.catalog import OGCatalog
 from opengeo.gui.catalogselector import selectCatalog
-from opengeo.gui.layerdialog import PublishLayersDialog, PublishLayerDialog
-from opengeo.gui.projectdialog import PublishProjectDialog
+from dialogs.layerdialog import PublishLayersDialog, PublishLayerDialog
+from dialogs.projectdialog import PublishProjectDialog
                 
 class QgsProjectItem(TreeItem): 
     def __init__(self): 

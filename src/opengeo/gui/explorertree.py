@@ -153,21 +153,25 @@ class ExplorerTreeWidget(QtGui.QTreeWidget):
             destinationItem=self.itemAt(event.pos()) 
             if destinationItem is None: 
                 return       
-            mimeData = event.mimeData()
-            elements = []            
-            for mimeFormat in mimeData.formats():                
-                if mimeFormat != self.QGIS_URI_MIME:
-                    continue            
-                encoded = mimeData.data(mimeFormat)
-                stream = QtCore.QDataStream(encoded, QtCore.QIODevice.ReadOnly)
-                while not stream.atEnd():
-                    mimeUri = stream.readQString()
-                    elements.append(mimeUri)            
+            data = event.mimeData()
+            elements = []   
+            
+            
+            if data.hasUrls():
+                for u in data.urls():
+                    filename = u.toLocalFile()
+                    if filename != "":
+                        elements.append(filename) 
+
+            if data.hasFormat(self.QGIS_URI_MIME):
+                for uri in QgsMimeDataUtils.decodeUriList( data ):
+                    elements.append(uri) 
+                                            
+            print str(elements)     
             if elements:
                 destinationItem.startDropEvent()
                 toUpdate = set()
-                for i, element in enumerate(elements):
-                    element = element.replace("\\", "")
+                for i, element in enumerate(elements):                    
                     destinationItem.acceptDroppedUri(self.explorer, element)                                                                                                         
                 toUpdate = destinationItem.finishDropEvent(self, self.explorer)
                 for item in toUpdate:
