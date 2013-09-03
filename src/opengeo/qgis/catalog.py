@@ -15,8 +15,9 @@ from opengeo.geoserver.catalog import ConflictingDataError, UploadError
 from opengeo.geoserver.catalog import Catalog as GSCatalog
 from PyQt4 import QtXml
 from opengeo.geoserver import utils
-from opengeo.geoserver.sldadapter import adaptQgsToGs, adaptGsToQgs,\
+from opengeo.geoserver.sldadapter import adaptGsToQgs,\
     getGsCompatibleSld
+from opengeo.gsimporter.client import Client
     
 def createGeoServerCatalog(service_url = "http://localhost:8080/geoserver/rest", 
                  username="admin", password="geoserver", disable_ssl_certificate_validation=False):
@@ -31,6 +32,8 @@ class OGCatalog(object):
     
     def __init__(self, catalog):
         self.catalog = catalog
+        #we also create a Client object pointing to the same url
+        self.client = Client(catalog.service_url, catalog.username, catalog.password)
     
     def publishStyle(self, layer, overwrite = False, name = None):
         '''
@@ -68,9 +71,9 @@ class OGCatalog(object):
         return data
     
     
-    def createStore(self, layer, workspace=None, overwrite=True, name=None,
+    def upload(self, layer, workspace=None, overwrite=True, name=None,
                            abstract=None, permissions=None, keywords=()):        
-        '''Creates a datastore for the specified layer'''  
+        '''uploads the specified layer'''  
               
         if isinstance(layer, basestring):
             layer = layers.resolveLayer(layer)     
@@ -78,12 +81,18 @@ class OGCatalog(object):
         name = name if name is not None else layer.name()
                     
         try:
-            if layer.type() == layer.RasterLayer:
-                data = self.getDataFromLayer(layer)
-                self.catalog.create_coveragestore(name,
-                                           data,
-                                           workspace=workspace,
-                                           overwrite=overwrite)      
+            settings = QSettings()
+            restApi = bool(settings.value("/OpenGeo/UseRestApi", True))
+            if layer.type() == layer.RasterLayer:                
+                path = self.getDataFromLayer(layer)
+                if restApi:
+                    self.catalog.create_coveragestore(name,
+                                              path,
+                                              workspace=workspace,
+                                              overwrite=overwrite)                            
+                else:
+                    self.client.upload(path)
+                
             elif layer.type() == layer.VectorLayer:
                 provider = layer.dataProvider()
                 if provider.name() == 'postgres':                                        
@@ -99,12 +108,16 @@ class OGCatalog(object):
                                            user = uri.username(),
                                            passwd = uri.password())  
                     self.catalog.create_pg_featuretype(uri.table(), connName, workspace, layer.crs().authid())
-                else:                             
-                    data = self.getDataFromLayer(layer)
-                    self.catalog.create_shp_featurestore(name,
-                                           data,
-                                           workspace=workspace,
-                                           overwrite=overwrite)
+                else:   
+                    path = self.getDataFromLayer(layer)
+                    if restApi:                    
+                        self.catalog.create_shp_featurestore(name,
+                                              path,
+                                              workspace=workspace,
+                                              overwrite=overwrite)
+                    else:
+                        self.client.upload(path['shp'])                          
+                    
             else:
                 msg = layer.name() + ' is not a valid raster or vector layer'
                 raise Exception(msg)
@@ -226,7 +239,7 @@ class OGCatalog(object):
           
         sld = self.publishStyle(layer, overwrite, name)
             
-        self.createStore(layer, workspace, overwrite, name)      
+        self.upload(layer, workspace, overwrite, name)      
     
         if sld is not None:
             #assign style to created store  

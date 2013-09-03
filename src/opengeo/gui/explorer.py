@@ -20,6 +20,7 @@ class OpenGeoExplorer(QtGui.QDockWidget):
         
     def initGui(self): 
         self.progressMaximum = 0   
+        self.isProgressVisible = False
         self.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)  
         self.dockWidgetContents = QtGui.QWidget()
         self.setWindowTitle('OpenGeo explorer')
@@ -31,35 +32,23 @@ class OpenGeoExplorer(QtGui.QDockWidget):
         self.toolbar.setToolButtonStyle(Qt.ToolButtonIconOnly)
         self.toolbar.setVisible(self.singletab)
         self.setToolbarActions([])
-        self.splitter.addWidget(self.explorerWidget)         
-        #self.tabbedPanel = QtGui.QTabWidget()                      
+        self.splitter.addWidget(self.explorerWidget)                             
         self.log = QtGui.QTextEdit()        
-        #self.tabbedPanel.addTab(QtGui.QWidget(), "Description")
-        #self.tabbedPanel.addTab(self.log, "Log")
         self.description = QtGui.QWidget()
         self.descriptionLayout = QtGui.QVBoxLayout()
         self.descriptionLayout.setSpacing(2)
         self.descriptionLayout.setMargin(0)
         self.description.setLayout(self.descriptionLayout)
-        self.splitter.addWidget(self.description)#self.tabbedPanel);
+        self.splitter.addWidget(self.description)
         self.setDescriptionWidget()
         self.progress = None
-        #self.tabbedPanel.setVisible(True)
-        #=======================================================================
-        # self.progress = QtGui.QProgressBar()
-        # self.progress.setMinimum(0)
-        # self.progress.setMaximum(100)
-        # self.progress.setValue(0)                       
-        #=======================================================================
         self.layout = QtGui.QVBoxLayout()
         self.layout.setSpacing(2)
         self.layout.setMargin(0)     
         self.status = QtGui.QLabel()   
         self.status.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)                                             
         self.layout.addWidget(self.toolbar)
-        self.layout.addWidget(self.splitter)
-        #self.layout.addWidget(self.status)
-        #self.layout.addWidget(self.progress)        
+        self.layout.addWidget(self.splitter)     
         self.setLayout(self.layout)
         self.dockWidgetContents.setLayout(self.layout)
         self.setWidget(self.dockWidgetContents)  
@@ -95,14 +84,19 @@ class OpenGeoExplorer(QtGui.QDockWidget):
             self.toolbar.addWidget(button)
             
         self.toolbar.update()
-        
-            
+                    
     def refreshContent(self):
         self.explorerWidget.refreshContent(self)
         self.refreshDescription()
         
     def catalogs(self):        
         return self.explorerWidget.catalogs()
+    
+    def geogitRepositories(self):
+        return self.explorerWidget.geogitRepostories()
+    
+    def pgDatabases(self):
+        return self.explorerWidget.pgDatabases()
         
     def updateQgisContent(self):
         self.explorerWidget.updateQgisContent()
@@ -125,9 +119,8 @@ class OpenGeoExplorer(QtGui.QDockWidget):
                     item.refreshContent(self)
             if None in refresh:
                 self.refreshContent()
-            if msg is not None and not self.isProgressVisible:
-                self.setInfo("Operation <i>" + msg + "</i> correctly executed")
-            self.resetActivity()
+            if msg is not None and self.isProgressVisible:
+                self.setInfo("Operation <i>" + msg + "</i> correctly executed")                
         def error(msg):
             QtGui.QApplication.restoreOverrideCursor()            
             self.setInfo(msg, ERROR)   
@@ -141,7 +134,7 @@ class OpenGeoExplorer(QtGui.QDockWidget):
         
         return error
         
-    def resetActivity(self):        
+    def resetActivity(self):               
         config.iface.messageBar().clearWidgets()
         self.isProgressVisible = False
         self.progress = None  
@@ -156,6 +149,7 @@ class OpenGeoExplorer(QtGui.QDockWidget):
         
     def setProgressMaximum(self, value):
         self.progressMaximum = value
+        self.isProgressVisible = True
         
     def setInfo(self, msg, msgtype = INFO):
         print str(self.progressMaximum)

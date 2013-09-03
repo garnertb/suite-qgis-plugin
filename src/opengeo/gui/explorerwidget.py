@@ -48,8 +48,9 @@ class ExplorerWidget(QtGui.QWidget):
             qgsIcon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/qgis.png") 
             self.gsPanel = GsTreePanel(self.explorer) 
             self.qgsPanel = QgsTreePanel(self.explorer)
+            self.pgPanel = PgTreePanel(self.explorer)
             self.tabbedPanel.addTab(self.gsPanel, gsIcon, 'GeoServer')
-            self.tabbedPanel.addTab(PgTreePanel(self.explorer), pgIcon,'PostGIS')
+            self.tabbedPanel.addTab(self.pgPanel, pgIcon,'PostGIS')
             self.tabbedPanel.addTab(self.qgsPanel, qgsIcon, 'QGIS')
             
             
@@ -57,7 +58,19 @@ class ExplorerWidget(QtGui.QWidget):
         if self.singletab:
             return self.gsItem._catalogs            
         else:
-            return self.gsPanel.catalogs         
+            return self.gsPanel.catalogs     
+        
+    def geogitRepositories(self):
+        if self.singletab:
+            return self.geogitItem.repos
+        else:
+            return self.geogitPanel.repos
+        
+    def pgDatabases(self):
+        if self.singletab:
+            return self.pgItem.databases
+        else:
+            return self.pgPanel.databases    
         
     def currentTreeWidget(self):
         if self.singletab:

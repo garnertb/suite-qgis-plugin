@@ -126,7 +126,7 @@ class ExplorerTreeWidget(QtGui.QTreeWidget):
     QGIS_URI_MIME = "application/x-vnd.qgis.qgis.uri"
  
     def mimeTypes(self):
-        return ["text/uri-list", self.QGIS_URI_MIME]
+        return ["application/x-qabstractitemmodeldatalist", self.QGIS_URI_MIME]
      
     def mimeData(self, items):        
         mimeData = QtGui.QTreeWidget.mimeData(self, items)               
@@ -136,27 +136,33 @@ class ExplorerTreeWidget(QtGui.QTreeWidget):
         for item in items:
             if isinstance(item, GsLayerItem):                
                 layer = item.element
-                uri = gsutils.mimeUri(layer)                                             
+                uri = gsutils.mimeUri(layer)                                                       
                 stream.writeQString(uri)
             elif isinstance(item, PgTableItem):
-                table = item.element
-                uri = pgutils.mimeUri(table)                                
+                table = item.element                
+                uri = pgutils.mimeUri(table)                        
                 stream.writeQString(uri)                
   
         mimeData.setData(self.QGIS_URI_MIME, encodedData)        
         return mimeData
         
     def dropEvent(self, event):
+        items = []
+        destinationItem=self.itemAt(event.pos())  
+        if destinationItem is None: 
+            return                  
         if isinstance(event.source(), self.__class__):
-            self.dropExplorerItemEvent(event)
-        else:
-            destinationItem=self.itemAt(event.pos()) 
-            if destinationItem is None: 
-                return       
+            draggedTypes = {item.__class__ for item in event.source().selectedItems()}
+            if len(draggedTypes) > 1:
+                return            
+            
+            items = self.selectedItems()                                    
+            toUpdate = destinationItem.acceptDroppedItems(self, self.explorer, items)
+        else:            
+    
             data = event.mimeData()
             elements = []   
-            
-            
+
             if data.hasUrls():
                 for u in data.urls():
                     filename = u.toLocalFile()
@@ -164,56 +170,12 @@ class ExplorerTreeWidget(QtGui.QTreeWidget):
                         elements.append(filename) 
 
             if data.hasFormat(self.QGIS_URI_MIME):
-                for uri in QgsMimeDataUtils.decodeUriList( data ):
+                for uri in QgsMimeDataUtils.decodeUriList(data):
                     elements.append(uri) 
-                                            
-            print str(elements)     
-            if elements:
-                destinationItem.startDropEvent()
-                toUpdate = set()
-                for i, element in enumerate(elements):                    
-                    destinationItem.acceptDroppedUri(self.explorer, element)                                                                                                         
-                toUpdate = destinationItem.finishDropEvent(self, self.explorer)
-                for item in toUpdate:
-                    item.refreshContent(self.explorer)        
-                self.explorer.resetActivity()
-                event.acceptProposedAction()    
- 
-    
-    def dropExplorerItemEvent(self, event):        
-        destinationItem=self.itemAt(event.pos())
-        draggedTypes = {item.__class__ for item in event.source().selectedItems()}
-        if len(draggedTypes) > 1:
-            return            
-        
-        selected = self.selectedItems()
-        self.explorer.setProgressMaximum(len(selected))
-        i = 0
-        toUpdate = set()
-        for item in selected:
-            updatable = destinationItem.acceptDroppedItem(self, self.explorer, item)
-            if updatable is not None:  
-                toUpdate.update(updatable)                                      
-            i += 1
-            self.explorer.setProgress(i)
-        
+                                              
+            toUpdate = destinationItem.acceptDroppedUris(self, self.explorer, elements)   
+                                                                                                                                                
         for item in toUpdate:
             item.refreshContent(self.explorer)        
         self.explorer.resetActivity()
-        event.acceptProposedAction()
-        
-        
-
-        
-     
-                    
-        
-        
-
-        
-                    
-            
-
-
-
-                 
+        event.acceptProposedAction()    

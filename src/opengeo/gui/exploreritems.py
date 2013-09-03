@@ -75,12 +75,15 @@ class TreeItem(QtGui.QTreeWidgetItem):
     
     def acceptDroppedItem(self, tree, explorer, item):
         return []
-    
-    def startDropEvent(self):
-        self.uris = []
         
-    def finishDropEvent(self, tree, explorer):
-        return []
+    def acceptDroppedItems(self, tree, explorer, items):
+        explorer.setProgressMaximum(len(items))
+        toUpdate = []
+        for i, item in enumerate(items):
+            toUpdate.extend(self.acceptDroppedItem(tree, explorer, item))
+            explorer.setProgress(i)
+        explorer.resetActivity()
+        return toUpdate
             
-    def acceptDroppedUri(self, explorer, uri):
-        pass
+    def acceptDroppedUris(self, tree, explorer, uris):
+        return []

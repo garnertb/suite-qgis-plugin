@@ -7,7 +7,7 @@ from PyQt4.QtGui import *
 from opengeo import config
 from opengeo.gui.explorer import OpenGeoExplorer
 
-cmd_folder = os.path.split(inspect.getfile( inspect.currentframe() ))[0]
+cmd_folder = os.path.split(inspect.getfile( inspect.currentframe()))[0]
 if cmd_folder not in sys.path:
     sys.path.insert(0, cmd_folder)
 
@@ -26,7 +26,9 @@ class OpenGeoPlugin:
         self.menu = QMenu(self.iface.mainWindow())
         self.menu.setTitle("OpenGeo")
         
-        self.explorer = OpenGeoExplorer(singletab = True)
+        settings = QSettings()
+        singletab = settings.value("/OpenGeo/SingleTabUI", True)
+        self.explorer = OpenGeoExplorer(singletab = singletab)
         self.iface.addDockWidget(Qt.RightDockWidgetArea, self.explorer)
         self.explorer.hide()        
 

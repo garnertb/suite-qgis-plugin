@@ -8,15 +8,18 @@ from dialogs.userpasswd import UserPasswdDialog
 from dialogs.importvector import ImportIntoPostGISDialog
 from dialogs.pgconnectiondialog import NewPgConnectionDialog
 from dialogs.createtable import DlgCreateTable
+from opengeo.gui.qgsexploreritems import QgsLayerItem
 
 pgIcon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/pg.png")   
  
 class PgConnectionsItem(TreeItem):
 
     def __init__(self):             
-        TreeItem.__init__(self, None, pgIcon, "PostGIS connections") 
+        TreeItem.__init__(self, None, pgIcon, "PostGIS connections")
+        self.databases = [] 
         
-    def populate(self):        
+    def populate(self):
+        self.databases = []         
         settings = QtCore.QSettings()
         settings.beginGroup(u'/PostgreSQL/connections')
         for name in settings.childGroups():
@@ -28,13 +31,12 @@ class PgConnectionsItem(TreeItem):
                 item = PgConnectionItem(conn)
                 if conn.isValid:                              
                     item.populate()
-                    #self.addChild(item)
+                    self.databases.append(conn)                    
                 else:    
                     #if there is a problem connecting, we add the unpopulated item with the error icon
                     #TODO: report on the problem
                     wrongConnectionIcon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/wrong.gif")                 
-                    item.setIcon(0, wrongConnectionIcon)
-                    #item.setText(0, name + "[cannot connect]")
+                    item.setIcon(0, wrongConnectionIcon)                    
                 self.addChild(item)
             except Exception, e:                
                 pass
@@ -113,45 +115,62 @@ class PgConnectionItem(TreeItem):
         else:
             TreeItem.linkClicked(self, tree, explorer, url)        
              
-    def startDropEvent(self):
-        self.uris = []        
-        
-    def acceptDroppedUri(self, explorer, uri):
-        if self.element.isValid:
-            self.uris.append(uri) 
-    
-    def finishDropEvent(self, tree, explorer):
-        if self.uris:
+    def acceptDroppedUris(self, tree, explorer, uris):
+        if uris:
             files = []
-            for uri in self.uris:
-                try:
-                    files.append(uri.split(":",3)[-1])
-                except Exception, e:
-                    pass            
-            dlg = ImportIntoPostGISDialog(self.element, files = files)
+            for uri in uris:
+                if isinstance(uri, basestring):
+                    files.append(uri)
+                else:                                       
+                    files.append(uri.uri)                  
+            dlg = ImportIntoPostGISDialog(explorer.connections, self.element, toImport = files)
             dlg.exec_()
-            if dlg.files is not None:            
-                explorer.setProgressMaximum(len(dlg.files))
-                for i, filename in enumerate(dlg.files):
+            if dlg.toImport is not None:            
+                explorer.setProgressMaximum(len(dlg.toImport))
+                for i, filename in enumerate(dlg.toImport):
                     explorer.setProgress(i)
-                    explorer.run(importFile, "Import " + filename + "  into database " + self.element.name,
+                    explorer.run(importFileOrLayer, "Import " + filename + "  into database " + self.element.name,
                     [],
-                    filename, self.element, dlg.schema, dlg.tablename, not dlg.add)        
+                    filename, self.element, dlg.schema, dlg.tablename, not dlg.add)
+                explorer.resetActivity()        
             return [self]
         else:
             return []
         
+    def acceptDroppedItems(self, tree, explorer, items):
+        toUpdate = set()
+        toImport = []
+        for item in items:         
+            if isinstance(item, QgsLayerItem):
+                if item.element.type() == QgsMapLayer.VectorLayer:
+                    toImport.append(item.element)        
+        if toImport:
+            dlg = ImportIntoPostGISDialog(explorer.connections, self.element, toImport = toImport)
+            dlg.exec_()
+            if dlg.toImport is not None: 
+                explorer.setProgressMaximum(len(dlg.toImport))           
+                for i, layer in enumerate(dlg.toImport):  
+                    explorer.setProgress(i)                  
+                    explorer.run(importFileOrLayer, "Import" + layer.name() + " into database " + self.element.name,
+                    [],
+                    layer, self.element.conn, dlg.schema, dlg.tablename, not dlg.add)                                            
+                explorer.resetActivity()
+                toUpdate.add(self)
+        
+        return toUpdate          
+        
       
     def importIntoDatabase(self, explorer):           
-        dlg = ImportIntoPostGISDialog(self.element)
+        dlg = ImportIntoPostGISDialog(explorer.connections, self.element)
         dlg.exec_()
         if dlg.ok:  
-            explorer.setProgressMaximum(len(dlg.files))          
-            for i, filename in enumerate(dlg.files):
+            explorer.setProgressMaximum(len(dlg.toImport))          
+            for i, filename in enumerate(dlg.toImport):
                 explorer.setProgress(i)
-                explorer.run(importFile, "Import" + filename + " into database " + self.element.name,
+                explorer.run(importFileOrLayer, "Import" + filename + " into database " + self.element.name,
                 [],
                 filename, self.element, dlg.schema, dlg.tablename, not dlg.add)
+            explorer.resetActivity()
         self.refreshContent(explorer)
           
     def runSql(self):
@@ -193,15 +212,16 @@ class PgSchemaItem(TreeItem):
         return [newTableAction, deleteAction, renameAction, importAction]
 
     def importIntoSchema(self, explorer):
-        dlg = ImportIntoPostGISDialog(self.element.conn, self.element.name)
+        dlg = ImportIntoPostGISDialog(explorer.connections, self.element.conn, self.element)
         dlg.exec_()
         if dlg.ok:        
-            explorer.setProgressMaximum(len(dlg.files))    
-            for i, filename in enumerate(dlg.files):
-                explorer.setProgress.setValue(i)
-                explorer.run(importFile, "Import " + filename + " into database " + self.element.conn.name,
+            explorer.setProgressMaximum(len(dlg.toImport))    
+            for i, filename in enumerate(dlg.toImport):
+                explorer.setProgress(i)
+                explorer.run(importFileOrLayer, "Import " + filename + " into database " + self.element.conn.name,
                 [],
                 filename, self.element.conn, dlg.schema, dlg.tablename, not dlg.add)
+            explorer.resetActivity()
         self.refreshContent(explorer)
         
     def deleteSchema(self, explorer):
@@ -222,33 +242,51 @@ class PgSchemaItem(TreeItem):
         dlg = DlgCreateTable(self.element)  
         dlg.exec_()  
     
-    def startDropEvent(self):
-        self.uris = []        
-        
-    def acceptDroppedUri(self, explorer, uri):
-        if self.element.conn.isValid:
-            self.uris.append(uri) 
-    
-    def finishDropEvent(self, tree, explorer):
-        if self.uris:
+    def acceptDroppedUris(self, tree, explorer, uris):
+        if uris:
             files = []
-            for uri in self.uris:
-                try:
-                    files.append(uri.split(":",3)[-1])
-                except Exception, e:
-                    pass            
-            dlg = ImportIntoPostGISDialog(self.element.conn, schema = self.element, files = files)
+            for uri in uris:                            
+                if isinstance(uri, basestring):
+                    files.append(uri)
+                else:                                       
+                    files.append(uri.uri)         
+            dlg = ImportIntoPostGISDialog(explorer.connections, self.element.conn, schema = self.element, toImport = files)
             dlg.exec_()
-            if dlg.files is not None: 
-                explorer.setProgressMaximum(len(dlg.files))           
-                for i, filename in enumerate(dlg.files):
+            if dlg.toImport is not None: 
+                explorer.setProgressMaximum(len(dlg.toImport))           
+                for i, filename in enumerate(dlg.toImport):
                     explorer.setProgress(i)
-                    explorer.run(importFile, "Import" + filename + " into database " + self.element.name,
+                    explorer.run(importFileOrLayer, "Import" + filename + " into database " + self.element.name,
                     [],
-                    filename, self.element.conn, dlg.schema, dlg.tablename, not dlg.add)        
+                    filename, self.element.conn, dlg.schema, dlg.tablename, not dlg.add)     
+                explorer.resetActivity()                       
             return [self]
         else:
-            return []                
+            return []    
+        
+    def acceptDroppedItems(self, tree, explorer, items):
+        print str(items)
+        toUpdate = set()
+        toImport = []
+        for item in items:                   
+            if isinstance(item, QgsLayerItem):
+                if item.element.type() == QgsMapLayer.VectorLayer:
+                    toImport.append(item.element)
+        print toImport
+        if toImport:
+            dlg = ImportIntoPostGISDialog(explorer.connections, self.element.conn, schema = self.element, toImport = toImport)
+            dlg.exec_()
+            if dlg.toImport is not None: 
+                explorer.setProgressMaximum(len(dlg.toImport))           
+                for i, layer in enumerate(dlg.toImport):  
+                    explorer.setProgress(i)                  
+                    explorer.run(importFileOrLayer, "Import" + layer.name() + " into database " + self.element.name,
+                    [],
+                    layer, self.element.conn, dlg.schema, dlg.tablename, not dlg.add)                                            
+                explorer.resetActivity()
+                toUpdate.add(self)
+        
+        return toUpdate                  
         
 class PgTableItem(TreeItem): 
     def __init__(self, table):                               
@@ -292,6 +330,11 @@ class PgTableItem(TreeItem):
         vacuumAction.triggered.connect(lambda: self.vacuumTable(explorer))
         return [publishPgTableAction, deleteAction, renameAction, vacuumAction]
            
+    def multipleSelectionContextMenuActions(self, tree, explorer, selected):        
+        deleteAction= QtGui.QAction("Delete", explorer)
+        deleteAction.triggered.connect(lambda: self.deleteTable(explorer))   
+        return [deleteAction]
+               
     def vacuumTable(self, explorer):
         explorer.run(self.element.conn.geodb.vacuum_analyze, 
                   "Vacuum table " + self.element.name,
@@ -299,10 +342,17 @@ class PgTableItem(TreeItem):
                   self.element.name, self.element.schema)
     
     def deleteTable(self, explorer):
-        explorer.run(self.element.conn.geodb.delete_table, 
-                          "Delete table '" + self.element.name + "'",
-                          [self.parent()], 
-                          self.element.name)
+        self.deleteTables(explorer, [self])
+        
+    def deleteTables(self, explorer, items):
+        explorer.setProgressMaximum(len(items))
+        for i, item in enumerate(items):
+            explorer.setProgress(i)
+            explorer.run(item.element.conn.geodb.delete_table, 
+                          "Delete table '" + item.element.name + "'",
+                          [item.parent()], 
+                          item.element.name, item.element.schema)
+        explorer.resetActivity()
     
     def renameTable(self, explorer):
         text, ok = QtGui.QInputDialog.getText(explorer, "Table name", "Enter new name for table", text="table")
@@ -344,13 +394,17 @@ class PgTableItem(TreeItem):
                                            passwd = geodb.passwd)
         catalog.create_pg_featuretype(table.name, connection.name, workspace, "EPSG:" + str(table.srid))  
         
-def importFile(filename, connection, schema, tablename, overwrite):
+def importFileOrLayer(source, connection, schema, tablename, overwrite):
 
     pk = "id"
     geom = "geom" 
     providerName = "postgres" 
     
-    layerName = QtCore.QFileInfo(filename).completeBaseName()
+    if isinstance(source, basestring):
+        layerName = QtCore.QFileInfo(source).completeBaseName()
+    else:
+        layerName = source.name()
+    
     if tablename is None:
         tablename = layerName
 
@@ -365,10 +419,13 @@ def importFile(filename, connection, schema, tablename, overwrite):
     else:
         options['append'] = True
         
-    layer = QgsVectorLayer(filename, layerName, "ogr")    
-    if not layer.isValid() or layer.type() != QgsMapLayer.VectorLayer:
-        layer.deleteLater()
-        raise WrongLayerFileError("Error reading file {} or it is not a valid vector layer file".format(filename))
+    if isinstance(source, basestring):
+        layer = QgsVectorLayer(source, layerName, "ogr")    
+        if not layer.isValid() or layer.type() != QgsMapLayer.VectorLayer:
+            layer.deleteLater()
+            raise WrongLayerFileError("Error reading file {} or it is not a valid vector layer file".format(source))
+    else:
+        layer = source
 
     ret, errMsg = QgsVectorLayerImport.importLayer(layer, uri.uri(), providerName, layer.crs(), False, False, options)
     if ret != 0:

@@ -147,10 +147,11 @@ class GsTreePanel(QtGui.QWidget):
                 for process in processes:
                     item = GsProcessItem(process)
                     self.tree.addTopLevelItem(item)
-                self.explorer.setProgress(7)
+                self.explorer.setProgress(7)                
             except:
                 #ignore this section if catalog does not have WPS installed
                 pass  
+            self.explorer.resetActivity()
             self.tree.invisibleRootItem().sortChildren(0, QtCore.Qt.AscendingOrder)
             #we keep a list of container items, to use their actions
             self.containerItems = [GsLayersItem(self.catalog), GsWorkspacesItem(self.catalog),

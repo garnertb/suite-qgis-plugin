@@ -69,7 +69,7 @@ class QgsProjectItem(TreeItem):
                 explorer.setProgress(0)
                 return
             progress += 1                
-        explorer.setProgress(progress)  
+            explorer.setProgress(progress)  
         
         groups = qgislayers.getGroups()
         for group in groups:
@@ -84,7 +84,7 @@ class QgsProjectItem(TreeItem):
             explorer.run(catalog.save, "Create global layer group", 
                      [], layergroup)                
         tree.findAllItems(catalog)[0].refreshContent(explorer)
-        explorer.setProgress(0)                                                 
+        explorer.resetActivity()                                              
                     
 class QgsLayerItem(TreeItem): 
     def __init__(self, layer ): 
@@ -94,25 +94,32 @@ class QgsLayerItem(TreeItem):
      
     def contextMenuActions(self, tree, explorer):
         icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/publish-to-geoserver.png")
-        publishLayerAction = QtGui.QAction(icon, "Publish...", explorer)
+        publishLayerAction = QtGui.QAction(icon, "Publish to GeoServer...", explorer)
         publishLayerAction.triggered.connect(lambda: self.publishLayer(tree, explorer)) 
         publishLayerAction.setEnabled(len(explorer.catalogs())>0)    
         icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/create-store-from-layer.png")   
         createStoreFromLayerAction= QtGui.QAction("Create store from layer...", explorer)
         createStoreFromLayerAction.triggered.connect(lambda: self.createStoreFromLayer(tree, explorer))
         createStoreFromLayerAction.setEnabled(len(explorer.catalogs())>0)
-        return [publishLayerAction, createStoreFromLayerAction]   
+        importToPostGisAction = QtGui.QAction(None, "import into PostGIS...", explorer)
+        importToPostGisAction.triggered.connect(lambda: self.importToPostGis(tree, explorer))
+        importToPostGisAction.setEnabled(len(explorer.pgDatabases())>0)
+        
+        return [publishLayerAction, createStoreFromLayerAction, importToPostGisAction]   
     
     def multipleSelectionContextMenuActions(self, tree, explorer, selected):        
-        publishLayersAction = QtGui.QAction("Publish...", explorer)
-        publishLayersAction.triggered.connect(lambda: self.publishLayers(tree, explorer, selected))        
+        publishLayersAction = QtGui.QAction("Publish to GeoServer...", explorer)
+        publishLayersAction.triggered.connect(lambda: self.publishLayers(tree, explorer, selected))
+        publishLayersAction.setEnabled(len(explorer.catalogs())>0)        
         createStoresFromLayersAction= QtGui.QAction("Create stores from layers...", explorer)
         createStoresFromLayersAction.triggered.connect(lambda: self.createStoresFromLayers(tree, explorer, selected))
-        return [publishLayersAction, createStoresFromLayersAction] 
+        importToPostGisAction = QtGui.QAction(None, "Import into PostGIS...", explorer)
+        importToPostGisAction.triggered.connect(lambda: self.importLayersToPostGis(tree, explorer, selected))
+        importToPostGisAction.setEnabled(len(explorer.pgDatabases())>0)  
+        return [publishLayersAction, createStoresFromLayersAction, importToPostGisAction] 
     
     def publishLayers(self, tree, explorer, selected):        
-        layers = [item.element for item in selected]
-        #TODO: better way of accessing catalogs        
+        layers = [item.element for item in selected]        
         dlg = PublishLayersDialog(explorer.catalogs(), layers)
         dlg.exec_()     
         toPublish  = dlg.topublish
@@ -130,13 +137,19 @@ class QgsLayerItem(TreeItem):
                      layer, workspace, True)
             progress += 1
             toUpdate.add(tree.findAllItems(catalog)[0])
-        explorer.setProgress(progress)
+            explorer.setProgress(progress)
         
         for item in toUpdate:
             item.refreshContent(explorer)
-        explorer.setProgress(0)        
+        explorer.resetActivity()    
                            
 
+    def importLayerToPostGis(self, tree, explorer):
+        self.importLayersToPostGis(tree, explorer, [self])
+        
+    
+    def importLayersToPostGis(self, tree, explorer, selected):    
+        
         
     def createStoresFromLayers(self, tree, explorer, selected):        
         layers = [item.element for item in selected]        
@@ -157,11 +170,11 @@ class QgsLayerItem(TreeItem):
                      layer, workspace, True)
             progress += 1
             toUpdate.add(tree.findAllItems(catalog))
-        explorer.setProgress(progress)
+            explorer.setProgress(progress)
         
         for item in toUpdate:
             item.refreshContent(explorer)
-        explorer.setProgress(0)
+        explorer.resetActivity()
         
     def createStoreFromLayer(self, tree, explorer):
         dlg = PublishLayerDialog(explorer.catalogs())
@@ -244,14 +257,14 @@ class QgsGroupItem(TreeItem):
                     explorer.setProgress(0)
                     return
                 progress += 1                
-            explorer.setProgress(progress)  
+                explorer.setProgress(progress)  
         names = [layer.name() for layer in group]      
         layergroup = cat.create_layergroup(groupname, names, names)
         explorer.run(cat.save, "Create layer group from group '" + groupname + "'", 
                  [], layergroup)        
         for item in toUpdate:
             item.refreshContent(explorer)
-        explorer.setProgress(0)                       
+        explorer.resetActivity()                     
                
 class QgsStyleItem(TreeItem): 
     def __init__(self, layer): 
