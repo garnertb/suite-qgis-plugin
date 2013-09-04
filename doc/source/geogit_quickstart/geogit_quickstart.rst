@@ -29,7 +29,7 @@ Right--click on the `landuse`` item and select *Add as project layer*. A new lay
 
 The geogit repository does not contain any symbology, but just the data itself, so a default sybology will be used.
 
-Let's edit the layer. If you open it's attributes table, you will see that one of it's attributes is mispelled.
+Let's edit the layer. If you open its attributes table, you will see that one of its attributes is mispelled.
 
 .. image:: img/mispelled.png
 
@@ -47,15 +47,15 @@ You can do further editing and create new snapshots with new data. There is not 
 
 If you click on the item representing the last commit that you have added, you can get more information about it in the description panel.
 
-.. image:: img/commit description.png
+.. image:: img/commit_description.png
 
-In the case of this last commit, you can see that one feature is reported as modified (the one you corrected).
+In the case of this last commit, you can see that one feature is reported as modified (the one you corrected). Modifications are shown in brown, while additions are shown in green and deletions in red.
 
 You can see more detail about this change if you click on the *View change* link.
 
 .. image:: img/view_change.png
 
-You can also compare the data in any snapshot with the current data, by clicking on it and selecting *Compare with working tree*. 
+You can also compare the data in any snapshot with the current data, by clicking on it and selecting *Compare with working tree...*. 
 
 .. image:: img/comparison.png
 
@@ -95,11 +95,15 @@ Select only the modified feature in the table in the lower part of the window an
 
 Click on *OK* to perform the commit operation
 
-The repository history now contains that new commit, but the workign tree is still not clean, since the feature that we added hasn't been comitted. Inkove the commit command again. The commit ialog now should look like this. Enter a message to define the change you are about to commit (for instance "Added new elevation point"), and click on *OK*.
+The repository history now contains that new commit, but the working tree is still not clean, since the feature that we added hasn't been comitted. 
+
+.. image:: img/after_first_commit.png
+
+Inkove the commit command again. The commit ialog now should look like this. Enter a message to define the change you are about to commit (for instance "Added new elevation point"), and click on *OK*.
 
 Now all your changes have been commited, and the working tree is clean.
 
-.. image:: img/clean_wrok_tree.png
+.. image:: img/clean_work_tree.png
 
 Creating an empty repository 
 -----------------------------
@@ -112,9 +116,9 @@ The repository is empty in this case, and doesn't have any commit. We can start 
 
 .. image:: img/wfs.png
 
-Create a layer based on the *xxxx* layer offered by that service.
+Create a layer based on the *IBA* layer offered by that service.
 
-
+.. image:: img/wfs_layer.png
 
 Now, import and commit it, in the same way that you did before for file--based layers. The data from the WFS connection has been stored in your repository, and a new commit has been created.
 
