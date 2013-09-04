@@ -256,7 +256,7 @@ class CLIConnector():
         self.run(["shp", "export", ref, shapefile])
         
     def exportsl(self, ref, database):
-        self.run(["sl", "export", ref, ref, database])
+        self.run(["sl", "export", ref, "exported", "--database", database])
         
     def getfeature(self, ref):        
         output = self.run(["show", "--raw", ref])

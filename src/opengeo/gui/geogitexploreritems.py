@@ -346,12 +346,12 @@ class GeogitTreeItem(TreeItem):
         return[addToProjectAction]                
 
     def addToProject(self, explorer):           
-        filename = utils.tempFilenameInTempFolder("exported.shp")
+        filename = utils.tempFilenameInTempFolder("exported.sqlite")
         if  filename != "":    
             def _addToProject():        
-                self.element.repo.exportshp(str(self.element), unicode(filename))                
+                self.element.repo.exportsl(str(self.element), unicode(filename))                
             explorer.run(_addToProject, "Add Geogit tree to QGIS project", [])
-            layer = QgsVectorLayer(filename, self.element.path, "ogr")            
+            layer = QgsVectorLayer(filename, self.element.path, "ogr")   
             QgsMapLayerRegistry.instance().addMapLayers([layer])
             explorer.updateQgisContent()
         
