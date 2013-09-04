@@ -1,19 +1,18 @@
 from datetime import datetime, timedelta
 import logging
-from opengeo.core.layer import Layer
-from opengeo.core.store import coveragestore_from_index, datastore_from_index, \
+from opengeo.geoserver.layer import Layer
+from opengeo.geoserver.store import coveragestore_from_index, datastore_from_index, \
     UnsavedDataStore, UnsavedCoverageStore
-from opengeo.core.style import Style
-from opengeo.core.support import prepare_upload_bundle, url
-from opengeo.core.layergroup import LayerGroup, UnsavedLayerGroup
-from opengeo.core.workspace import workspace_from_index, Workspace
+from opengeo.geoserver.style import Style
+from opengeo.geoserver.support import prepare_upload_bundle, url
+from opengeo.geoserver.layergroup import LayerGroup, UnsavedLayerGroup
+from opengeo.geoserver.workspace import workspace_from_index, Workspace
 from os import unlink
-#import opengeo.httplib2
 from xml.etree.ElementTree import XML
 from xml.parsers.expat import ExpatError
 from urlparse import urlparse
 from opengeo import httplib2
-from opengeo.core import util
+from opengeo.geoserver import util
 
 logger = logging.getLogger("gsconfig.catalog")
 
@@ -72,6 +71,16 @@ class Catalog(object):
     @property
     def gs_base_url(self):
         return self.service_url.rstrip("rest")
+    
+    def about(self):
+        '''return the about information as a formatted html'''
+        about_url = self.service_url + "/about/version.html"
+        response, content = self.http.request(about_url, "GET")
+        if response.status == 200:
+            return content
+        else:
+            return "Cannot get information about catalog.\n"
+         
 
     def delete(self, config_object, purge=False, recurse=False):
         """
@@ -147,8 +156,8 @@ class Catalog(object):
         then POSTS the request.
         """
         rest_url = obj.href
-        message = obj.message()
-
+        message = obj.message()                
+        
         headers = {
             "Content-type": "application/xml",
             "Accept": "application/xml"
@@ -272,6 +281,10 @@ class Catalog(object):
     def create_pg_featurestore(self, name, workspace=None, overwrite=False, 
                                host="localhost", port = 5432 , database="db", schema="public", user="postgres", passwd=""):
         '''creates a postgis-based datastore'''
+        
+        if user == "" and passwd == "":
+            raise Exception("Both username and password are empty strings. Use a different user/passwd combination")
+        
         if workspace is None:
             workspace = self.get_default_workspace()
         try:
@@ -282,9 +295,7 @@ class Catalog(object):
         if store is not None:              
             if overwrite:
                 #if the existing store is the same we are trying to add, we do nothing
-                params = store.connection_parameters
-                print params
-                print (port, database, host, user, passwd)
+                params = store.connection_parameters                                
                 if (str(params['port']) == str(port) and params['database'] == database and params['host'] == host
                         and params['user'] == user):
                     print "db connection already exists"
@@ -333,7 +344,7 @@ class Catalog(object):
         if headers.status != 201 and headers.status != 200:            
             raise UploadError(response)
         
-    def create_pg_featuretype(self, name, store, workspace=None):
+    def create_pg_featuretype(self, name, store, workspace=None, srs = "EPSG:4326"):
         
         if workspace is None:
             workspace = self.get_default_workspace()
@@ -353,16 +364,15 @@ class Catalog(object):
         "<metadata />\n" 
         "<keywords><string>KEYWORD</string></keywords>\n" 
         "<projectionPolicy>REPROJECT_TO_DECLARED</projectionPolicy>\n" 
-        "<title>stand_manual</title>\n" 
+        "<title>" + name + "</title>\n" 
         "<name>" + name +"</name>\n"         
-        "<srs>EPSG:32632</srs>" 
+        "<srs>" + srs +"</srs>" 
         "</featureType>")
-                
-        headers, response = self.http.request(ds_url, "POST", xml, headers)
         
+        headers, response = self.http.request(ds_url, "POST", xml, headers)
+               
         if headers.status != 201 and headers.status != 200:            
             raise UploadError(response)
-
 
         
     def create_shp_featurestore(self, name, data, workspace=None, overwrite=False, charset=None):
@@ -539,12 +549,25 @@ class Catalog(object):
         else:
             return UnsavedLayerGroup(self, name, layers, styles, bounds)
 
-    def get_style(self, name):
-        try:
+    def get_style(self, name, workspace = None):
+        if workspace is not None:
+            style_url = url(self.service_url, ["workspaces", workspace.name, "styles", name + ".xml"]) 
+            try:
+                dom = self.get_xml(style_url)
+                return Style(self, name, workspace)
+            except:
+                return None           
+        else:            
             style_url = url(self.service_url, ["styles", name + ".xml"])
-            dom = self.get_xml(style_url)
-            return Style(self, dom.find("name").text)
-        except FailedRequestError:
+            try:
+                dom = self.get_xml(style_url)
+                return Style(self, name)#dom.find("name").text)
+            except:
+                pass 
+            for ws in self.get_workspaces():
+                style = self.get_style(name, workspace=ws)
+                if style is not None:
+                    return style
             return None
 
     def get_styles(self):
@@ -552,7 +575,7 @@ class Catalog(object):
         description = self.get_xml(styles_url)
         return [Style(self, s.find('name').text) for s in description.findall("style")]
 
-    def create_style(self, name, data, overwrite = False):
+    def create_style(self, name, sld, overwrite = False):
         style = self.get_style(name)
         if not overwrite:            
             if style is not None:
@@ -563,18 +586,13 @@ class Catalog(object):
             "Accept": "application/xml"
         }                
         
-        #TODO: this is a quick hack to make geoserver understand the sld.
-        #it should be changed
-        data = data.replace("SvgParameter","CssParameter")
-        data = data.replace("1.1.","1.0.")
-        
         if overwrite and style is not None:
             style_url = url(self.service_url, ["styles", name + ".sld"])
-            headers, response = self.http.request(style_url, "PUT", data, headers)           
+            headers, response = self.http.request(style_url, "PUT", sld, headers)
+            if headers.status < 200 or headers.status > 299: raise UploadError(response)           
         else:            
             style_url = url(self.service_url, ["styles"], dict(name=name))
-            headers, response = self.http.request(style_url, "POST", data, headers)
-            if headers.status < 200 or headers.status > 299: raise UploadError(response)                                
+            headers, response = self.http.request(style_url, "POST", sld, headers)                                          
 
         self._cache.clear()
         if headers.status < 200 or headers.status > 299: raise UploadError(response)
@@ -610,10 +628,13 @@ class Catalog(object):
 
     def set_default_workspace(self, name):
         workspace = self.get_workspace(name)
+        print workspace.name
+        print workspace.message()
         if workspace is not None:            
             headers = { "Content-Type": "application/xml" }
             default_workspace_url = self.service_url + "/workspaces/default.xml"            
             headers, response = self.http.request(default_workspace_url, "PUT", workspace.message(), headers)
+            print headers, response
             assert 200 <= headers.status < 300, "Error setting default workspace: " + str(headers.status) + ": " + response
             self._cache.clear()
             

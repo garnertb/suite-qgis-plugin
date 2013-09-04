@@ -2,6 +2,9 @@ import os
 import uuid
 import time
 from PyQt4.QtCore import *
+import urllib
+from qgis.core import *
+from opengeo.geoserver.layer import Layer
 
 def tempFolder():
     tempDir = os.path.join(unicode(QDir.tempPath()), "suiteplugin")
@@ -32,3 +35,5 @@ def mkdir(newdir):
             mkdir(head)
         if tail:
             os.mkdir(newdir)
+
+

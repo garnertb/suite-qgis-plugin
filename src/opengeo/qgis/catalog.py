@@ -10,13 +10,14 @@ import os
 from qgis.core import *
 from PyQt4.QtXml import *
 from PyQt4.QtCore import *
-from opengeo.qgis import layers, exporter, utils
+from opengeo.qgis import layers, exporter
 from opengeo.geoserver.catalog import ConflictingDataError, UploadError
 from opengeo.geoserver.catalog import Catalog as GSCatalog
-import urllib
-import re
-from opengeo import httplib2
 from PyQt4 import QtXml
+from opengeo.geoserver import utils
+from opengeo.geoserver.sldadapter import adaptGsToQgs,\
+    getGsCompatibleSld
+from opengeo.gsimporter.client import Client
     
 def createGeoServerCatalog(service_url = "http://localhost:8080/geoserver/rest", 
                  username="admin", password="geoserver", disable_ssl_certificate_validation=False):
@@ -31,6 +32,8 @@ class OGCatalog(object):
     
     def __init__(self, catalog):
         self.catalog = catalog
+        #we also create a Client object pointing to the same url
+        self.client = Client(catalog.service_url, catalog.username, catalog.password)
     
     def publishStyle(self, layer, overwrite = False, name = None):
         '''
@@ -40,50 +43,12 @@ class OGCatalog(object):
         
         if isinstance(layer, basestring):
             layer = layers.resolveLayer(layer)         
-        sld = self.getStyleAsSld(layer) 
-        if sld:       
-            name = name if name is not None else layer.name()
+        sld = getGsCompatibleSld(layer) 
+        if sld is not None:       
+            name = name if name is not None else layer.name()            
             self.catalog.create_style(name, sld, overwrite)
         return sld
        
-    def getStyleAsSld(self, layer):        
-        if layer.type() == layer.VectorLayer:  
-            document = QDomDocument()
-            header = document.createProcessingInstruction( "xml", "version=\"1.0\" encoding=\"UTF-8\"" )
-            document.appendChild( header )
-                
-            root = document.createElementNS( "http://www.opengis.net/sld", "StyledLayerDescriptor" )
-            root.setAttribute( "version", "1.1.0" )
-            root.setAttribute( "xsi:schemaLocation", "http://www.opengis.net/sld http://schemas.opengis.net/sld/1.1.0/StyledLayerDescriptor.xsd" )
-            root.setAttribute( "xmlns:ogc", "http://www.opengis.net/ogc" )
-            root.setAttribute( "xmlns:se", "http://www.opengis.net/se" )
-            root.setAttribute( "xmlns:xlink", "http://www.w3.org/1999/xlink" )
-            root.setAttribute( "xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance" )
-            document.appendChild( root )
-        
-            namedLayerNode = document.createElement( "NamedLayer" )
-            root.appendChild( namedLayerNode )
-                    
-            errorMsg = ""
-                    
-            layer.writeSld(namedLayerNode, document, errorMsg)
-            
-            return unicode(document.toString(4))
-        elif layer.type() == layer.RasterLayer: 
-            #QGIS does not support SLD for raster layers, so we have this workaround
-            sldpath = os.path.join(os.path.dirname(__file__), "..", "resources")
-            if layer.bandCount() == 1:
-                sldfile = os.path.join(sldpath, "grayscale.sld")
-            else:
-                sldfile = os.path.join(sldpath, "rgb.sld")                
-            with open(sldfile, 'r') as f:
-                sld = f.read()
-            return sld
-        else:
-            return None
-            
-    
-    
     def getDataFromLayer(self, layer):
         '''
         Returns the data corresponding to a given layer, ready to be passed to the
@@ -106,9 +71,9 @@ class OGCatalog(object):
         return data
     
     
-    def createStore(self, layer, workspace=None, overwrite=True, name=None,
+    def upload(self, layer, workspace=None, overwrite=True, name=None,
                            abstract=None, permissions=None, keywords=()):        
-        '''Creates a datastore for the specified layer'''  
+        '''uploads the specified layer'''  
               
         if isinstance(layer, basestring):
             layer = layers.resolveLayer(layer)     
@@ -116,12 +81,18 @@ class OGCatalog(object):
         name = name if name is not None else layer.name()
                     
         try:
-            if layer.type() == layer.RasterLayer:
-                data = self.getDataFromLayer(layer)
-                self.catalog.create_coveragestore(name,
-                                           data,
-                                           workspace=workspace,
-                                           overwrite=overwrite)      
+            settings = QSettings()
+            restApi = bool(settings.value("/OpenGeo/UseRestApi", True))
+            if layer.type() == layer.RasterLayer:                
+                path = self.getDataFromLayer(layer)
+                if restApi:
+                    self.catalog.create_coveragestore(name,
+                                              path,
+                                              workspace=workspace,
+                                              overwrite=overwrite)                            
+                else:
+                    self.client.upload(path)
+                
             elif layer.type() == layer.VectorLayer:
                 provider = layer.dataProvider()
                 if provider.name() == 'postgres':                                        
@@ -136,13 +107,17 @@ class OGCatalog(object):
                                            port = uri.port(),
                                            user = uri.username(),
                                            passwd = uri.password())  
-                    self.catalog.create_pg_featuretype(uri.table(), connName, workspace)
-                else:                             
-                    data = self.getDataFromLayer(layer)
-                    self.catalog.create_shp_featurestore(name,
-                                           data,
-                                           workspace=workspace,
-                                           overwrite=overwrite)
+                    self.catalog.create_pg_featuretype(uri.table(), connName, workspace, layer.crs().authid())
+                else:   
+                    path = self.getDataFromLayer(layer)
+                    if restApi:                    
+                        self.catalog.create_shp_featurestore(name,
+                                              path,
+                                              workspace=workspace,
+                                              overwrite=overwrite)
+                    else:
+                        self.client.upload(path['shp'])                          
+                    
             else:
                 msg = layer.name() + ' is not a valid raster or vector layer'
                 raise Exception(msg)
@@ -179,9 +154,8 @@ class OGCatalog(object):
                 resource.projection = "EPSG:4326"
                 self.catalog.save(resource)
             else:
-                msg = ('GeoServer failed to detect the projection for layer '
-                       '[%s]. It doesn\'t look like EPSG:4326, so backing out '
-                       'the layer.')
+                msg = ('Could not set projection for layer '
+                       '[%s]. the layer has been created, but its projection should be set manually.')
                 raise Exception(msg % layer.name())
             
     def getConnectionNameFromLayer(self, layer):
@@ -224,7 +198,7 @@ class OGCatalog(object):
         
         groups = layers.getGroups()
         if name not in groups:
-            raise Exception("the specified group does not exist")
+            raise Exception("The specified group does not exist")
         
         group = groups[name]
         
@@ -265,9 +239,9 @@ class OGCatalog(object):
           
         sld = self.publishStyle(layer, overwrite, name)
             
-        self.createStore(layer, workspace, overwrite, name)      
+        self.upload(layer, workspace, overwrite, name)      
     
-        if sld:
+        if sld is not None:
             #assign style to created store  
             publishing = self.catalog.get_layer(name)        
             publishing.default_style = self.catalog.get_style(name)
@@ -285,62 +259,23 @@ class OGCatalog(object):
             raise Exception ("A layer with the name '" + name + "' was not found in the catalog")
             
         resource = layer.resource        
-        
-        if resource.resource_type == "featureType":
-            params = {
-                'service': 'WFS',
-                'version': '1.0.0',
-                'request': 'GetFeature',
-                'typename': name,
-                'srsname': resource.projection
-            }            
-            url =  self.catalog.gs_base_url + "wfs?" + urllib.urlencode(params)              
-            qgslayer = QgsVectorLayer(url, layer.name, "WFS") 
+        uri = utils.layerUri(layer)                        
+        if resource.resource_type == "featureType":                    
+            qgslayer = QgsVectorLayer(uri, layer.name, "WFS") 
+            err = False
             try:
-                sld = layer.default_style.sld_body                
+                sld = layer.default_style.sld_body  
+                sld = adaptGsToQgs(sld)              
                 node = QtXml.QDomDocument()  
                 node.setContent(sld)              
-                qgslayer.readSld(node, "")
-                QgsMapLayerRegistry.instance().addMapLayers([qgslayer])
+                qgslayer.readSld(node, "")                
             except Exception, e:        
-                raise e        
-        elif resource.resource_type == "coverage":
-                from lxml import etree
-                client = httplib2.Http()
-                description_url = self.catalog.gs_base_url + "wcs?" + urllib.urlencode({
-                        "service": "WCS",
-                        "version": "1.0.0",
-                        "request": "DescribeCoverage",
-                        "coverage": self.typename
-                    })
-                content = client.request(description_url)[1]
-                doc = etree.fromstring(content)
-                extent = doc.find(".//%(gml)slimits/%(gml)sGridEnvelope" % {"gml": "{http://www.opengis.net/gml}"})
-                low = extent.find("{http://www.opengis.net/gml}low").text.split()
-                high = extent.find("{http://www.opengis.net/gml}high").text.split()
-                w, h = [int(h) - int(l) for (h, l) in zip(high, low)]
+                err = True
+            QgsMapLayerRegistry.instance().addMapLayers([qgslayer])
+            if err:
+               raise Exception ("Layer was added, but style could not be set (maybe GeoServer layer is missing default style)")        
+        elif resource.resource_type == "coverage":                        
+            qgslayer = QgsRasterLayer(uri, name, "wcs" )            
+            QgsMapLayerRegistry.instance().addMapLayers([qgslayer])
 
-                bbox = self.resource.latlon_bbox
-                crs = 'EPSG:4326'  if bbox[4] is None else bbox[4]
-                bbox_string = ",".join([bbox[0], bbox[2], bbox[1], bbox[3]])
-                
-        
-                url = self.catalog.gs_base_url + "wcs?" + urllib.urlencode({
-                        "service": "WCS",
-                        "version": "1.0.0",
-                        "request": "GetCoverage",
-                        "CRS": crs,
-                        "height": h,
-                        "width": w,
-                        "coverage": self.typename,
-                        "bbox": bbox_string,
-                        "format": "geotiff"
-                    })
-
-
-    
-
-    
-
-
-     
+                        

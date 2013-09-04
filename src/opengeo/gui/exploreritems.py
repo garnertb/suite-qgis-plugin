@@ -1,239 +1,89 @@
-import os
-from PyQt4 import QtGui,QtCore
-from opengeo.qgis import layers as qgislayers
-from opengeo.core import util
-from opengeo.core.store import DataStore
-from opengeo.core.resource import Coverage
+from opengeo.geoserver import util
+from PyQt4 import QtGui, QtCore
 
 class TreeItem(QtGui.QTreeWidgetItem): 
     def __init__(self, element, icon = None, text = None): 
         QtGui.QTreeWidgetItem.__init__(self) 
-        self.element = element        
+        self.element = element    
+        self.setData(0, QtCore.Qt.UserRole, element)            
         text = text if text is not None else util.name(element)
         self.setText(0, text)      
         if icon is not None:
             self.setIcon(0, icon)   
         self.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)               
             
-    def refreshContent(self):
-        self.takeChildren()
-        self.populate()
-
-    def parentCatalog(self):        
-        item  = self            
-        while item is not None:                    
-            if isinstance(item, GsCatalogItem):
-                return item.element                           
-            item = item.parent()            
-        return None              
+    def refreshContent(self, explorer):
+        self.takeChildren()        
+        if hasattr(self.element, "refresh"):
+            self.element.refresh()
+        explorer.run(self.populate, None, [])                
+       
+    def descriptionWidget(self, tree, explorer):                
+        text = self.getDescriptionHtml(tree, explorer)
+        self.description = QtGui.QTextBrowser()
+        self.description.setOpenLinks(False)        
+        def linkClicked(url):
+            self.linkClicked(tree, explorer, url)
+        self.description.connect(self.description, QtCore.SIGNAL("anchorClicked(const QUrl&)"), linkClicked)
+        self.description.setHtml(text)   
+        return self.description 
     
-class QgsProjectItem(TreeItem): 
-    def __init__(self): 
-        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/qgis.png")
-        TreeItem.__init__(self, None, icon, "QGIS project")        
-                 
-    def populate(self):                    
-        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/layer.png")
-        layersItem = TreeItem(None, icon, "Layers")        
-        layersItem.setIcon(0, icon)
-        layers = qgislayers.getAllLayers()
-        for layer in layers:
-            layerItem = QgsLayerItem(layer)            
-            layersItem.addChild(layerItem)
-        self.addChild(layersItem)
-        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/group.gif")
-        groupsItem = TreeItem(None, icon, "Groups")        
-        groups = qgislayers.getGroups()
-        for group in groups:
-            groupItem = QgsGroupItem(group)                                
-            groupsItem.addChild(groupItem)
-            groupItem.populate()
-        self.addChild(groupsItem)
-        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/style.png")
-        stylesItem = TreeItem(None, icon, "Styles")               
-        stylesItem.setIcon(0, icon)
-        styles = qgislayers.getVectorLayers()
-        for style in styles:
-            styleItem = QgsStyleItem(style)            
-            stylesItem.addChild(styleItem)
-        self.addChild(stylesItem)        
-            
-class QgsLayerItem(TreeItem): 
-    def __init__(self, layer ): 
-        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/layer.png")
-        TreeItem.__init__(self, layer, icon)   
-        self.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled)      
-     
-class QgsGroupItem(TreeItem): 
-    def __init__(self, group): 
-        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/group.gif")
-        TreeItem.__init__(self, group , icon)   
-        self.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled)
+    def getDescriptionHtml(self, tree, explorer):
+        html = self._getDescriptionHtml(tree, explorer)
+        html = u"""
+            <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+            <html>
+            <head>
+            <style type="text/css">
+                .section { margin-top: 25px; }
+                table.header th { background-color: #dddddd; }
+                table.header td { background-color: #f5f5f5; }
+                table.header th, table.header td { padding: 0px 10px; }
+                table td { padding-right: 20px; }
+                .underline { text-decoration:underline; }
+            </style>
+            </head>
+            <body>
+            %s <br>
+            </body>
+            </html>
+            """ % html  
+        return html      
         
-    def populate(self):            
-        grouplayers = qgislayers.getGroups()[self.element]
-        for layer in grouplayers:
-            layerItem = QgsLayerItem(layer)                                
-            self.addChild(layerItem)
-               
-class QgsStyleItem(TreeItem): 
-    def __init__(self, layer): 
-        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/style.png")
-        TreeItem.__init__(self, layer, icon, "Style of layer '" + layer.name() + "'") 
-        self.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled)        
-            
-class GsLayersItem(TreeItem): 
-    def __init__(self): 
-        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/layer.png")
-        TreeItem.__init__(self, None, icon, "Layers")
-        self.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDropEnabled) 
-            
-    def populate(self):
-        layers = self.parentCatalog().get_layers()
-        for layer in layers:
-            layerItem = GsLayerItem(layer)            
-            layerItem.populate()    
-            self.addChild(layerItem)
-            
-                
-class GsGroupsItem(TreeItem): 
-    def __init__(self): 
-        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/group.gif")
-        TreeItem.__init__(self, None, icon, "Groups")
-           
-        
-    def populate(self):
-        groups = self.parentCatalog().get_layergroups()
-        for group in groups:
-            groupItem = GsGroupItem(group)
-            groupItem.populate()                                
-            self.addChild(groupItem)         
-
-class GsWorkspacesItem(TreeItem): 
-    def __init__(self): 
-        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/workspace.png")
-        TreeItem.__init__(self, None, icon, "Workspaces")         
+    def _getDescriptionHtml(self, tree, explorer): 
+        html = u'<div style="background-color:#ffffcc;"><h1>&nbsp; ' + self.text(0) + '</h1></div><ul>'               
+        actions = self.contextMenuActions(tree, explorer)
+        for action in actions:
+            if action.isEnabled():
+                html += '<li><a href="' + action.text() + '">' + action.text() + '</a></li>\n'
+        html += '</ul>'
+        return html 
     
-    def populate(self):
-        cat = self.parentCatalog()
-        try:
-            defaultWorkspace = cat.get_default_workspace()
-            defaultWorkspace.fetch()
-            defaultName = defaultWorkspace.dom.find('name').text
-        except:
-            defaultName = None             
-        workspaces = cat.get_workspaces()
-        for workspace in workspaces:
-            workspaceItem = GsWorkspaceItem(workspace, workspace.name == defaultName)
-            workspaceItem.populate()
-            self.addChild(workspaceItem) 
-
-class GsStylesItem(TreeItem): 
-    def __init__(self ): 
-        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/style.png")
-        TreeItem.__init__(self, None, icon, "Styles")
-        self.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled) 
-                    
-    def populate(self):
-        styles = self.parentCatalog().get_styles()
-        for style in styles:
-            styleItem = GsStyleItem(style, False)                
-            self.addChild(styleItem)
-                
-class GsCatalogItem(TreeItem): 
-    def __init__(self, catalog, name): 
-        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/geoserver.png")
-        TreeItem.__init__(self, catalog, icon, name) 
+    def linkClicked(self, tree, explorer, url):
+        actionName = url.toString()
+        actions = self.contextMenuActions(tree, explorer)
+        for action in actions:
+            if action.text() == actionName:
+                action.trigger()
+                return            
+    
+    def contextMenuActions(self, tree, explorer):
+        return []   
+    
+    def multipleSelectionContextMenuActions(self, tree, explorer, selected):
+        return []
+    
+    def acceptDroppedItem(self, tree, explorer, item):
+        return []
         
-    def populate(self):        
-        self.workspacesItem = GsWorkspacesItem()                              
-        self.addChild(self.workspacesItem)  
-        self.workspacesItem.populate()
-        self.layersItem = GsLayersItem()                                      
-        self.addChild(self.layersItem)
-        self.layersItem.populate()
-        self.groupsItem = GsGroupsItem()                                    
-        self.addChild(self.groupsItem)
-        self.groupsItem.populate()
-        self.stylesItem = GsStylesItem()                        
-        self.addChild(self.stylesItem)
-        self.stylesItem.populate()      
-                        
-class GsLayerItem(TreeItem): 
-    def __init__(self, layer): 
-        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/layer.png")
-        TreeItem.__init__(self, layer, icon)  
-        self.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable 
-                      | QtCore.Qt.ItemIsDropEnabled | QtCore.Qt.ItemIsDragEnabled)       
-        
-    def populate(self):
-        layer = self.element
-        for style in layer.styles:
-            styleItem = GsStyleItem(style, False)
-            self.addChild(styleItem)
-        if layer.default_style is not None:
-            styleItem = GsStyleItem(layer.default_style, True)                    
-            self.addChild(styleItem)  
-                
-
-class GsGroupItem(TreeItem): 
-    def __init__(self, group): 
-        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/group.gif")
-        TreeItem.__init__(self, group, icon)
-        self.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable 
-                      | QtCore.Qt.ItemIsDropEnabled)  
-        
-    def populate(self):
-        layers = self.element.catalog.get_layers()
-        layersDict = {layer.name : layer for layer in layers}
-        for layer in self.element.layers:
-            layerItem = GsLayerItem(layersDict[layer])                    
-            self.addChild(layerItem)
-            #layerItem.populate()
-
-class GsStyleItem(TreeItem): 
-    def __init__(self, style, isDefault): 
-        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/style.png")
-        name = style.name if not isDefault else style.name + " [default style]"
-        TreeItem.__init__(self, style, icon, name)
-        self.isDefault = isDefault     
-        self.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled)        
-          
-class GsWorkspaceItem(TreeItem): 
-    def __init__(self, workspace, isDefault):
-        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/workspace.png")                 
-        self.isDefault = isDefault        
-        name = workspace.name if not isDefault else workspace.name + " [default workspace]"
-        TreeItem.__init__(self, workspace, icon, name)    
-        self.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDropEnabled)  
-        
-    def populate(self):
-        stores = self.element.catalog.get_stores(self.element)
-        for store in stores:
-            storeItem = GsStoreItem(store)
-            storeItem.populate()
-            self.addChild(storeItem)         
-                             
-class GsStoreItem(TreeItem): 
-    def __init__(self, store):
-        if isinstance(store, DataStore):
-            icon = None#QtGui.QIcon(os.path.dirname(__file__) + "/../images/workspace.png")
-        else:
-            icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/grid.jpg")             
-        TreeItem.__init__(self, store, icon)
-        self.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDropEnabled)  
-
-    def populate(self):        
-        resources = self.element.get_resources()
-        for resource in resources:
-            resourceItem = GsResourceItem(resource)                        
-            self.addChild(resourceItem)        
-
-class GsResourceItem(TreeItem): 
-    def __init__(self, resource):  
-        if isinstance(resource, Coverage):
-            icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/grid.jpg")
-        else:
-            icon = None#QtGui.QIcon(os.path.dirname(__file__) + "/../images/workspace.png")
-        TreeItem.__init__(self, resource, icon)
-        self.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDropEnabled)  
+    def acceptDroppedItems(self, tree, explorer, items):
+        explorer.setProgressMaximum(len(items))
+        toUpdate = []
+        for i, item in enumerate(items):
+            toUpdate.extend(self.acceptDroppedItem(tree, explorer, item))
+            explorer.setProgress(i)
+        explorer.resetActivity()
+        return toUpdate
+            
+    def acceptDroppedUris(self, tree, explorer, uris):
+        return []

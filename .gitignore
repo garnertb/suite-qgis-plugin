@@ -1,1 +1,5 @@
 .metadata
+/src/.project
+/src/.pydevproject
+/src/build.xml
+/doc/build
