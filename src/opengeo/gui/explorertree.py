@@ -106,9 +106,9 @@ class ExplorerTreeWidget(QtGui.QTreeWidget):
         allItems = []
         iterator = QtGui.QTreeWidgetItemIterator(self)
         value = iterator.value()
-        while value:
+        while value:            
             if hasattr(value, 'element'):
-                if hasattr(value.element, 'name') and hasattr(element, 'name'):
+                if hasattr(value.element, 'name') and hasattr(element, 'name'):                                    
                     if  value.element.name == element.name and value.element.__class__ == element.__class__:
                         allItems.append(value)
                 elif value.element == element:

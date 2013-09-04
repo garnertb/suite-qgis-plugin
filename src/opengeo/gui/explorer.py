@@ -118,7 +118,7 @@ class OpenGeoExplorer(QtGui.QDockWidget):
                 if item is not None:
                     item.refreshContent(self)
             if None in refresh:
-                self.refreshContent()
+                self.refreshContent()            
             if msg is not None and self.isProgressVisible:
                 self.setInfo("Operation <i>" + msg + "</i> correctly executed")                
         def error(msg):

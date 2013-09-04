@@ -39,7 +39,7 @@ class ImportIntoPostGISDialog(QDialog):
 		self.horizontalLayout1 = QHBoxLayout()
 		self.connectionLabel = QLabel("Database")
 		self.horizontalLayout1.addWidget(self.connectionLabel)
-		self.connectionsBox = QComboBox()
+		self.connectionBox = QComboBox()
 		connections = [c.name for c in self.connections]
 		self.connectionBox.addItems(connections)
 		if self.connection is not None:
@@ -48,8 +48,8 @@ class ImportIntoPostGISDialog(QDialog):
 		else:
 			self.connection = self.connections[0]
 			self.connectionBox.currentIndexChanged.connect(self.updateSchemas)
-		self.horizontalLayout1.addWidget(self.schemaBox)
-		self.verticalLayout1.addLayout(self.horizontalLayout1)
+		self.horizontalLayout1.addWidget(self.connectionBox)
+		self.verticalLayout2.addLayout(self.horizontalLayout1)
 		self.horizontalLayout2 = QHBoxLayout()
 		self.schemaLabel = QLabel("Schema")
 		self.horizontalLayout2.addWidget(self.schemaLabel)
@@ -61,7 +61,8 @@ class ImportIntoPostGISDialog(QDialog):
 			self.schemaBox.setEnabled(False)
 		else:
 			self.schemaBox.currentIndexChanged.connect(self.updateTables)
-		self.horizontalLayout2.addWidget(self.schemaBox)		
+		self.horizontalLayout2.addWidget(self.schemaBox)
+		self.verticalLayout2.addLayout(self.horizontalLayout2)		
 		self.horizontalLayout3 = QHBoxLayout()   
 		self.tableLabel = QLabel("Table")
 		self.horizontalLayout3.addWidget(self.tableLabel)
@@ -95,7 +96,7 @@ class ImportIntoPostGISDialog(QDialog):
 		self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
 		self.verticalLayout.addWidget(self.buttonBox)
 		
-		self.layerBox.setFiles(self.toImport)
+		self.layerBox.setFiles(self.toImport)		
 		
 		self.setLayout(self.verticalLayout)
 
@@ -104,7 +105,7 @@ class ImportIntoPostGISDialog(QDialog):
 	
 	def tableChanged(self):
 		table = self.tableBox.currentText()
-		if table != "[use file name]" and self.files is not None and len(self.files) > 1:
+		if table != "[use file name]" and self.toImport is not None and len(self.toImport) > 1:
 			self.addCheckBox.setChecked(True)
 			self.addCheckBox.setEnabled(False)
 		else:
@@ -134,13 +135,17 @@ class ImportIntoPostGISDialog(QDialog):
 	def accept(self):		
 		if self.toImport is None:
 			self.layerBox.text.setStyleSheet("QLineEdit{background: yellow}")
+			return		
+		schema = self.schemaBox.currentText()
+		if schema == "":
+			self.schemaBox.text.setStyleSheet("QLineEdit{background: yellow}")
 			return
-		self.ok = True
-		self.schema = self.schemaBox.currentText()
+		self.schema = schema
 		self.tablename = self.tableBox.currentText()
-		if self.tablename == "[use file name]":
+		if self.tablename == "[use file name]" or self.tablename == "":
 			self.tablename = None	
-		self.add = self.addCheckBox.isChecked()		
+		self.add = self.addCheckBox.isChecked()
+		self.ok = True		
 		QDialog.accept(self)        
 		
 	def reject(self):		

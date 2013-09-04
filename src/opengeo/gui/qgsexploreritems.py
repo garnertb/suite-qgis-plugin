@@ -8,6 +8,7 @@ from opengeo.qgis.catalog import OGCatalog
 from opengeo.gui.catalogselector import selectCatalog
 from dialogs.layerdialog import PublishLayersDialog, PublishLayerDialog
 from dialogs.projectdialog import PublishProjectDialog
+from opengeo.gui.dialogs.importvector import ImportIntoPostGISDialog
                 
 class QgsProjectItem(TreeItem): 
     def __init__(self): 
@@ -98,11 +99,11 @@ class QgsLayerItem(TreeItem):
         publishLayerAction.triggered.connect(lambda: self.publishLayer(tree, explorer)) 
         publishLayerAction.setEnabled(len(explorer.catalogs())>0)    
         icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/create-store-from-layer.png")   
-        createStoreFromLayerAction= QtGui.QAction("Create store from layer...", explorer)
+        createStoreFromLayerAction= QtGui.QAction(icon, "Create store from layer...", explorer)
         createStoreFromLayerAction.triggered.connect(lambda: self.createStoreFromLayer(tree, explorer))
         createStoreFromLayerAction.setEnabled(len(explorer.catalogs())>0)
-        importToPostGisAction = QtGui.QAction(None, "import into PostGIS...", explorer)
-        importToPostGisAction.triggered.connect(lambda: self.importToPostGis(tree, explorer))
+        importToPostGisAction = QtGui.QAction("Import into PostGIS...", explorer)
+        importToPostGisAction.triggered.connect(lambda: self.importLayerToPostGis(tree, explorer))
         importToPostGisAction.setEnabled(len(explorer.pgDatabases())>0)
         
         return [publishLayerAction, createStoreFromLayerAction, importToPostGisAction]   
@@ -113,7 +114,7 @@ class QgsLayerItem(TreeItem):
         publishLayersAction.setEnabled(len(explorer.catalogs())>0)        
         createStoresFromLayersAction= QtGui.QAction("Create stores from layers...", explorer)
         createStoresFromLayersAction.triggered.connect(lambda: self.createStoresFromLayers(tree, explorer, selected))
-        importToPostGisAction = QtGui.QAction(None, "Import into PostGIS...", explorer)
+        importToPostGisAction = QtGui.QAction("Import into PostGIS...", explorer)
         importToPostGisAction.triggered.connect(lambda: self.importLayersToPostGis(tree, explorer, selected))
         importToPostGisAction.setEnabled(len(explorer.pgDatabases())>0)  
         return [publishLayersAction, createStoresFromLayersAction, importToPostGisAction] 
@@ -148,7 +149,20 @@ class QgsLayerItem(TreeItem):
         self.importLayersToPostGis(tree, explorer, [self])
         
     
-    def importLayersToPostGis(self, tree, explorer, selected):    
+    def importLayersToPostGis(self, tree, explorer, selected):
+        layers = [item.element for item in selected]    
+        dlg = ImportIntoPostGISDialog(explorer.pgDatabases(), toImport = layers)
+        dlg.exec_()
+        if dlg.ok:
+            schema = [s for s in dlg.connection.schemas() if s.name == dlg.schema][0]
+            explorer.setProgressMaximum(len(dlg.toImport))           
+            for i, layer in enumerate(dlg.toImport):
+                explorer.setProgress(i)
+                explorer.run(dlg.connection.importFileOrLayer, "Import" + layer.name() + " into database " + dlg.connection.name,
+                tree.findAllItems(schema),
+                layer, dlg.schema, dlg.tablename, not dlg.add)     
+            explorer.resetActivity() 
+                              
         
         
     def createStoresFromLayers(self, tree, explorer, selected):        
