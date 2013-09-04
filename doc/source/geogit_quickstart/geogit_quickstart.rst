@@ -99,7 +99,9 @@ The repository history now contains that new commit, but the working tree is sti
 
 .. image:: img/after_first_commit.png
 
-Inkove the commit command again. The commit ialog now should look like this. Enter a message to define the change you are about to commit (for instance "Added new elevation point"), and click on *OK*.
+Inkove the commit command again. The commit dialog now should now contain just one feature, with *Added* status. Enter a message to define the change you are about to commit and click on *OK*.
+
+.. image:: img/commit_filled_2.png
 
 Now all your changes have been commited, and the working tree is clean.
 
