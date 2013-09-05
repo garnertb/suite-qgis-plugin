@@ -12,12 +12,12 @@ from dialogs.geogitimportdialog import ImportAndCommitDialog, ImportDialog
 from opengeo.qgis.exporter import exportVectorLayer
 from opengeo.geogit.geogitexception import GeoGitException
 from opengeo.geogit import diff
-from opengeo.gui.createbranch import CreateBranchDialog
+from dialogs.createbranch import CreateBranchDialog
 from dialogs.diffdialog import DiffDialog
 from opengeo.geogit.diff import TYPE_ADDED, TYPE_MODIFIED
 from dialogs.geogitref import RefDialog
-from opengeo.gui.commitdialog import CommitDialog
-from opengeo.gui.dialogs.twowaydiff import TwoWayDiffViewerDialog
+from dialogs.commitdialog import CommitDialog
+from dialogs.twowaydiff import TwoWayDiffViewerDialog
 from opengeo.gui.qgsexploreritems import QgsLayerItem
 
 geogitIcon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/geogit.png")
@@ -131,9 +131,9 @@ class GeogitRepositoryItem(TreeItem):
     def createBranch(self, explorer):
         repo = self.element
         dlg = CreateBranchDialog(repo)
-        dlg.exec_()
-        ref = dlg.getref()                
-        if ref is not None:            
+        dlg.exec_()                        
+        if dlg.ok:
+            ref = dlg.getref()            
             explorer.run(repo.createbranch, "Create new branch", [], ref, dlg.getName(), dlg.isForce(), dlg.isCheckout())                            
             if dlg.isCheckout():
                 self.refreshContent(explorer) 
@@ -419,9 +419,9 @@ class GeogitCommitItem(TreeItem):
         ref = self.element.commit.ref
         repo = self.element.commit.repo
         dlg = CreateBranchDialog(repo, ref)
-        dlg.exec_()
-        ref = dlg.getref()                
-        if ref is not None:          
+        dlg.exec_()                    
+        if dlg.ok:
+            ref = dlg.getref()          
             explorer.run(repo.createbranch, "Create branch at commit " + ref, [], dlg.getName(), dlg.isForce(), dlg.isCheckout())        
             if dlg.isCheckout():
                 self.refreshContent(explorer)                

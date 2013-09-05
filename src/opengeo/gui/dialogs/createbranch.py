@@ -1,17 +1,19 @@
 from PyQt4 import QtGui, QtCore
-from dialogs.geogitref import RefWidget
+from geogitref import RefWidget
 
 
 class CreateBranchDialog(QtGui.QDialog):
     
     def __init__(self, repo, ref = None, parent = None):
         super(CreateBranchDialog, self).__init__(parent)
+        self.ok = False
         self.repo = repo
         self.ref = ref
         self.initGui()
         
         
-    def initGui(self):                         
+    def initGui(self):             
+        self.setWindowTitle("Create branch")            
         layout = QtGui.QVBoxLayout()                                
         buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Close)
         self.refwidget = RefWidget(self.repo)
@@ -64,8 +66,9 @@ class CreateBranchDialog(QtGui.QDialog):
         self.ref = self.refwidget.getref()
         self.force = self.forceCheck.isChecked()
         self.checkout = self.checkoutCheck.isChecked()
+        self.ok = True
         self.close()
 
     def cancelPressed(self):
-        self.ref = None
+        self.ok = False
         self.close()  

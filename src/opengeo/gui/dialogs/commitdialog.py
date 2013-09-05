@@ -1,6 +1,6 @@
 from PyQt4 import QtGui, QtCore
 from opengeo import geogit
-from dialogs.twowaydiff import TwoWayDiffViewerDialog
+from twowaydiff import TwoWayDiffViewerDialog
 
 class CommitDialog(QtGui.QDialog):
     

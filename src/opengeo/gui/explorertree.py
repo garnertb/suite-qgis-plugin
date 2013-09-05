@@ -92,8 +92,9 @@ class ExplorerTreeWidget(QtGui.QTreeWidget):
         if not isinstance(self.selectedItem, TreeItem):
             return                  
         menu = QtGui.QMenu()
-        if (isinstance(self.selectedItem, TreeItem) and hasattr(self.selectedItem, 'populate')):            
-            refreshAction = QtGui.QAction("Refresh", None)
+        if (isinstance(self.selectedItem, TreeItem) and hasattr(self.selectedItem, 'populate')):
+            refreshIcon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/refresh.png")               
+            refreshAction = QtGui.QAction(refreshIcon, "Refresh", None)
             refreshAction.triggered.connect(lambda: self.selectedItem.refreshContent(self.explorer))
             menu.addAction(refreshAction) 
         point = self.mapToGlobal(point)    
