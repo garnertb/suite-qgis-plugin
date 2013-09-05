@@ -126,10 +126,11 @@ class PgConnectionItem(TreeItem):
             dlg = ImportIntoPostGISDialog(explorer.pgDatabases(), self.element, toImport = files)
             dlg.exec_()
             if dlg.ok:           
-                explorer.setProgressMaximum(len(dlg.toImport))
+                explorer.setProgressMaximum(len(dlg.toImport), "Import layers into PostGIS")
                 for i, filename in enumerate(dlg.toImport):
                     explorer.setProgress(i)
-                    explorer.run(self.element.importFileOrLayer, "Import " + filename + "  into database " + self.element.name,
+                    explorer.run(self.element.importFileOrLayer,
+                    None, #"Import " + filename + "  into database " + self.element.name,
                     [],
                     filename, dlg.schema, dlg.tablename, not dlg.add)
                 explorer.resetActivity()        
@@ -148,10 +149,11 @@ class PgConnectionItem(TreeItem):
             dlg = ImportIntoPostGISDialog(explorer.pgDatabases(), self.element, toImport = toImport)
             dlg.exec_()
             if dlg.ok: 
-                explorer.setProgressMaximum(len(dlg.toImport))           
+                explorer.setProgressMaximum(len(dlg.toImport), "Import layers into PostGIS")           
                 for i, layer in enumerate(dlg.toImport):  
                     explorer.setProgress(i)                  
-                    explorer.run(self.element.importFileOrLayer, "Import" + layer.name() + " into database " + self.element.name,
+                    explorer.run(self.element.importFileOrLayer, 
+                    None, #"Import" + layer.name() + " into database " + self.element.name,
                     [],
                     layer, dlg.schema, dlg.tablename, not dlg.add)                                            
                 explorer.resetActivity()
@@ -164,10 +166,11 @@ class PgConnectionItem(TreeItem):
         dlg = ImportIntoPostGISDialog(explorer.pgDatabases(), self.element)
         dlg.exec_()
         if dlg.ok:  
-            explorer.setProgressMaximum(len(dlg.toImport))          
+            explorer.setProgressMaximum(len(dlg.toImport), "Import layers into PostGIS")          
             for i, filename in enumerate(dlg.toImport):
                 explorer.setProgress(i)
-                explorer.run(self.element.importFileOrLayer, "Import" + filename + " into database " + self.element.name,
+                explorer.run(self.element.importFileOrLayer, 
+                None, #"Import" + filename + " into database " + self.element.name,
                 [],
                 filename, dlg.schema, dlg.tablename, not dlg.add)
             explorer.resetActivity()
@@ -215,10 +218,11 @@ class PgSchemaItem(TreeItem):
         dlg = ImportIntoPostGISDialog(explorer.pgDatabases(), self.element.conn, self.element)
         dlg.exec_()
         if dlg.ok:        
-            explorer.setProgressMaximum(len(dlg.toImport))    
+            explorer.setProgressMaximum(len(dlg.toImport), "Import layers into PostGIS")    
             for i, filename in enumerate(dlg.toImport):
                 explorer.setProgress(i)
-                explorer.run(self.element.conn.importFileOrLayer, "Import " + filename + " into database " + self.element.conn.name,
+                explorer.run(self.element.conn.importFileOrLayer, 
+                None, #"Import " + filename + " into database " + self.element.conn.name,
                 [],
                 filename, dlg.schema, dlg.tablename, not dlg.add)
             explorer.resetActivity()
@@ -253,10 +257,11 @@ class PgSchemaItem(TreeItem):
             dlg = ImportIntoPostGISDialog(explorer.pgDatabases(), self.element.conn, schema = self.element, toImport = files)
             dlg.exec_()
             if dlg.ok:
-                explorer.setProgressMaximum(len(dlg.toImport))           
+                explorer.setProgressMaximum(len(dlg.toImport), "Import layers into PostGIS")           
                 for i, filename in enumerate(dlg.toImport):
                     explorer.setProgress(i)
-                    explorer.run(self.element.conn.importFileOrLayer, "Import" + filename + " into database " + self.element.name,
+                    explorer.run(self.element.conn.importFileOrLayer, 
+                    None, #"Import" + filename + " into database " + self.element.name,
                     [],
                     filename, dlg.schema, dlg.tablename, not dlg.add)     
                 explorer.resetActivity()                       
@@ -277,10 +282,11 @@ class PgSchemaItem(TreeItem):
             dlg = ImportIntoPostGISDialog(explorer.pgDatabases(), self.element.conn, schema = self.element, toImport = toImport)
             dlg.exec_()
             if dlg.ok:
-                explorer.setProgressMaximum(len(dlg.toImport))           
+                explorer.setProgressMaximum(len(dlg.toImport), "Import layers into PostGIS")           
                 for i, layer in enumerate(dlg.toImport):  
                     explorer.setProgress(i)                  
-                    explorer.run(self.element.conn.importFileOrLayer, "Import" + layer.name() + " into database " + self.element.name,
+                    explorer.run(self.element.conn.importFileOrLayer, 
+                    None, #"Import" + layer.name() + " into database " + self.element.name,
                     [],
                     layer, dlg.schema, dlg.tablename, not dlg.add)                                            
                 explorer.resetActivity()
@@ -345,13 +351,13 @@ class PgTableItem(TreeItem):
         self.deleteTables(explorer, [self])
         
     def deleteTables(self, explorer, items):
-        explorer.setProgressMaximum(len(items))
-        for i, item in enumerate(items):
-            explorer.setProgress(i)
+        explorer.setProgressMaximum(len(items), "Delete tables")
+        for i, item in enumerate(items):            
             explorer.run(item.element.conn.geodb.delete_table, 
-                          "Delete table '" + item.element.name + "'",
+                          None, #"Delete table '" + item.element.name + "'",
                           [item.parent()], 
                           item.element.name, item.element.schema)
+            explorer.setProgress(i+1)
         explorer.resetActivity()
     
     def renameTable(self, explorer):

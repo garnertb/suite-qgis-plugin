@@ -81,7 +81,7 @@ class TreeItem(QtGui.QTreeWidgetItem):
         toUpdate = []
         for i, item in enumerate(items):
             toUpdate.extend(self.acceptDroppedItem(tree, explorer, item))
-            explorer.setProgress(i)
+            explorer.setProgress(i + 1)
         explorer.resetActivity()
         return toUpdate
             

@@ -34,13 +34,15 @@ class ExplorerWidget(QtGui.QWidget):
         if self.singletab:                                     
             self.gsItem = GsCatalogsItem()                            
             self.pgItem = PgConnectionsItem()
-            self.pgItem.populate()
-            self.geogitItem = GeogitRepositoriesItem()                            
+            self.pgItem.populate()                                    
             self.qgsItem = QgsProjectItem()                
             self.qgsItem.populate()
             self.tree.addTopLevelItem(self.gsItem)                         
             self.tree.addTopLevelItem(self.pgItem)
-            self.tree.addTopLevelItem(self.geogitItem)                      
+            geogitActive = QSettings().value("/OpenGeo/Settings/GeoGit/Active", defaultValue=False)
+            if geogitActive:
+                self.geogitItem = GeogitRepositoriesItem()
+                self.tree.addTopLevelItem(self.geogitItem)                                      
             self.tree.addTopLevelItem(self.qgsItem) 
         else:                                
             gsIcon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/geoserver.png")
@@ -70,7 +72,7 @@ class ExplorerWidget(QtGui.QWidget):
         if self.singletab:
             return self.pgItem.databases
         else:
-            return self.pgPanel.databases    
+            return self.pgPanel.databases()    
         
     def currentTreeWidget(self):
         if self.singletab:

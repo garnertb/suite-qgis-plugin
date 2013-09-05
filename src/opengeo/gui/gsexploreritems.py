@@ -71,7 +71,7 @@ class GsTreeItem(TreeItem):
                     if style.name == item.element.name:
                         unused.append(style)      
         toUpdate = set(item.parent() for item in selected)                
-        explorer.setProgressMaximum(len(elements))
+        explorer.setProgressMaximum(len(elements), "Deleting elements")
         progress = 0        
         dependent = self.getDependentElements(elements)
                 
@@ -105,11 +105,11 @@ class GsTreeItem(TreeItem):
             explorer.setProgress(progress)    
             if isinstance(element, GwcLayer):
                 explorer.run(element.delete,
-                     "Delete " + element.__class__.__name__ + " '" + element.name + "'",
+                     None,#"Delete " + element.__class__.__name__ + " '" + element.name + "'",
                      [])                      
             else:                                     
                 explorer.run(element.catalog.delete,
-                     "Delete " + element.__class__.__name__ + " '" + element.name + "'",
+                     None,#"Delete " + element.__class__.__name__ + " '" + element.name + "'",
                      [], 
                      element, isinstance(element, Style))  
             progress += 1
@@ -363,13 +363,13 @@ class GsWorkspacesItem(GsTreeItem):
                     layerName = QtCore.QFileInfo(uri).completeBaseName()
                     layer = QgsVectorLayer(uri, layerName, "ogr")
                 else:                                       
-                    layer = QgsVectorLayer(uri.uri, uri.name, uri.providerKey)   
-                explorer.setProgress(i)                    
+                    layer = QgsVectorLayer(uri.uri, uri.name, uri.providerKey)                                       
                 if not layer.isValid() or layer.type() != QgsMapLayer.VectorLayer:
                     layer.deleteLater()
                     explorer.setInfo("Error reading file {} or it is not a valid vector layer file".format(filename), 1)                                
                 else:
                     publishDraggedLayer(explorer, layer, workspace)
+                explorer.setProgress(i + 1)
             explorer.resetActivity()                    
             return [tree.findAllItems(catalog)[0]]
         else:
@@ -502,23 +502,21 @@ class GsCatalogItem(GsTreeItem):
             files = []
             for uri in uris:
                 if isinstance(uri, basestring):
-                    file.append(uri)                    
+                    files.append(uri)                    
                 else:                                       
                     files.append(uri.uri)           
             workspace = self.getDefaultWorkspace()  
-            explorer.setProgressMaximum(len(uris))                           
+            explorer.setProgressMaximum(len(files))                           
             for i, filename in enumerate(files):
                 if isinstance(uri, basestring):
                     layerName = QtCore.QFileInfo(uri).completeBaseName()
-                    layer = QgsVectorLayer(uri, layerName, "ogr")
-                else:                                       
-                    layer = QgsVectorLayer(uri.uri, uri.name, uri.providerKey)   
-                explorer.setProgress(i)                
+                    layer = QgsVectorLayer(uri, layerName, "ogr")                                            
                 if not layer.isValid() or layer.type() != QgsMapLayer.VectorLayer:
                     layer.deleteLater()
                     explorer.setInfo("Error reading file {} or it is not a valid vector layer file".format(filename), 1)                                
                 else:
                     publishDraggedLayer(explorer, layer, workspace)
+                explorer.setProgress(i + 1)
             explorer.resetActivity()
             return [tree.findAllItems(catalog)[0]]
         else:
@@ -1028,7 +1026,7 @@ class GsWorkspaceItem(GsTreeItem):
                 if not layer.isValid() or layer.type() != QgsMapLayer.VectorLayer:
                     layer.deleteLater()
                     name = uri if isinstance(uri, basestring) else uri.uri 
-                    explorer.setInfo("Error reading file {} or it is not a valid vector layer file".format(uri), 1)                                
+                    explorer.setInfo("Error reading file {} or it is not a valid vector layer file".format(name), 1)                                
                 else:
                     publishDraggedLayer(explorer, layer, workspace)
                 explorer.setProgress(i + 1)
@@ -1309,13 +1307,13 @@ def publishDraggedGroup(self, explorer, groupItem, catalog, workspace):
         if layer.name() not in gslayers:
             missing.append(layer)         
     if missing:
-        explorer.setProgressMaximum(len(missing))
+        explorer.setProgressMaximum(len(missing), "Publish layers")
         progress = 0
         ogcat = OGCatalog(catalog)                  
         for layer in missing:
             explorer.setProgress(progress)                                           
             explorer.run(ogcat.publishLayer,
-                     "Layer correctly published from layer '" + layer.name() + "'",
+                     None,#"Layer correctly published from layer '" + layer.name() + "'",
                      [],
                      layer, workspace, True)
             progress += 1                                                            

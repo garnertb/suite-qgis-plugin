@@ -29,6 +29,7 @@ class CLIConnector():
             QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))                                                                                           
         os.chdir(self.repo.url)
         command = ['geogit'] + command
+        print " ".join(command)
         output = []    
         proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, 
                                 stdin=subprocess.PIPE,stderr=subprocess.STDOUT, universal_newlines=True)

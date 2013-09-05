@@ -58,20 +58,20 @@ class QgsProjectItem(TreeItem):
             return
         workspace = dlg.workspace
         groupName = dlg.groupName
-        explorer.setProgressMaximum(len(layers))
+        explorer.setProgressMaximum(len(layers), "Publish layers")
         progress = 0                    
         for layer in layers:
             explorer.setProgress(progress)            
             ogcat = OGCatalog(catalog)                 
             if not explorer.run(ogcat.publishLayer,
-                     "Publish layer '" + layer.name() + "'",
+                     None, #"Publish layer '" + layer.name() + "'",
                      [],
                      layer, workspace, True):
                 explorer.setProgress(0)
                 return
             progress += 1                
             explorer.setProgress(progress)  
-        
+        explorer.resetActivity()
         groups = qgislayers.getGroups()
         for group in groups:
             names = [layer.name() for layer in groups[group]] 
@@ -84,8 +84,7 @@ class QgsProjectItem(TreeItem):
             layergroup = catalog.create_layergroup(groupName, names, names)
             explorer.run(catalog.save, "Create global layer group", 
                      [], layergroup)                
-        tree.findAllItems(catalog)[0].refreshContent(explorer)
-        explorer.resetActivity()                                              
+        tree.findAllItems(catalog)[0].refreshContent(explorer)                                                
                     
 class QgsLayerItem(TreeItem): 
     def __init__(self, layer ): 
@@ -126,14 +125,14 @@ class QgsLayerItem(TreeItem):
         toPublish  = dlg.topublish
         if toPublish is None:
             return
-        explorer.setProgressMaximum(len(toPublish))
+        explorer.setProgressMaximum(len(toPublish), "Publish layers")
         progress = 0        
         toUpdate = set();
         for layer, catalog, workspace in toPublish:
             explorer.setProgress(progress)            
             ogcat = OGCatalog(catalog)                 
             explorer.run(ogcat.publishLayer,
-                     "Publish layer '" + layer.name() + "'",
+                     None,#"Publish layer '" + layer.name() + "'",
                      [],
                      layer, workspace, True)
             progress += 1
@@ -155,12 +154,13 @@ class QgsLayerItem(TreeItem):
         dlg.exec_()
         if dlg.ok:
             schema = [s for s in dlg.connection.schemas() if s.name == dlg.schema][0]
-            explorer.setProgressMaximum(len(dlg.toImport))           
-            for i, layer in enumerate(dlg.toImport):
-                explorer.setProgress(i)
-                explorer.run(dlg.connection.importFileOrLayer, "Import" + layer.name() + " into database " + dlg.connection.name,
+            explorer.setProgressMaximum(len(dlg.toImport), "Import layers to PostGIS")           
+            for i, layer in enumerate(dlg.toImport):                
+                explorer.run(dlg.connection.importFileOrLayer, 
+                None,#"Import" + layer.name() + " into database " + dlg.connection.name,
                 tree.findAllItems(schema),
-                layer, dlg.schema, dlg.tablename, not dlg.add)     
+                layer, dlg.schema, dlg.tablename, not dlg.add)
+                explorer.setProgress(i + 1)     
             explorer.resetActivity() 
                               
         
@@ -172,14 +172,14 @@ class QgsLayerItem(TreeItem):
         toPublish  = dlg.topublish
         if toPublish is None:
             return
-        explorer.setProgressMaximum(len(toPublish))
+        explorer.setProgressMaximum(len(toPublish), "Upload layers")
         progress = 0        
         toUpdate = set();
         for layer, catalog, workspace in toPublish:
             explorer.setProgress(progress)            
             ogcat = OGCatalog(catalog)                 
             explorer.run(ogcat.createStore,
-                     "Create store from layer '" + layer.name() + "'",
+                     None,#"Create store from layer '" + layer.name() + "'",
                      [],
                      layer, workspace, True)
             progress += 1
@@ -259,26 +259,27 @@ class QgsGroupItem(TreeItem):
             toPublish  = dlg.topublish
             if toPublish is None:
                 return
-            explorer.setProgressMaximum(len(toPublish))
+            explorer.setProgressMaximum(len(toPublish), "Publish layers")
             progress = 0                    
             for layer, catalog, workspace in toPublish:
                 explorer.setProgress(progress)            
                 ogcat = OGCatalog(catalog)                 
                 if not explorer.run(ogcat.publishLayer,
-                         "Publish layer '" + layer.name() + "'",
+                         None,#"Publish layer '" + layer.name() + "'",
                          [],
                          layer, workspace, True):
                     explorer.setProgress(0)
                     return
                 progress += 1                
-                explorer.setProgress(progress)  
+                explorer.setProgress(progress)
+            explorer.resetActivity()      
         names = [layer.name() for layer in group]      
         layergroup = cat.create_layergroup(groupname, names, names)
         explorer.run(cat.save, "Create layer group from group '" + groupname + "'", 
                  [], layergroup)        
         for item in toUpdate:
             item.refreshContent(explorer)
-        explorer.resetActivity()                     
+                         
                
 class QgsStyleItem(TreeItem): 
     def __init__(self, layer): 

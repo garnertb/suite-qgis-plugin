@@ -82,7 +82,7 @@ class OGCatalog(object):
                     
         try:
             settings = QSettings()
-            restApi = bool(settings.value("/OpenGeo/UseRestApi", True))
+            restApi = bool(settings.value("/OpenGeo/Settings/GeoServer/UseRestApi", True, bool))
             if layer.type() == layer.RasterLayer:                
                 path = self.getDataFromLayer(layer)
                 if restApi:

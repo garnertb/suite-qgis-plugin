@@ -13,7 +13,7 @@ CONSOLE_OUTPUT = 2
     
 class OpenGeoExplorer(QtGui.QDockWidget):
 
-    def __init__(self, parent = None, singletab = False):
+    def __init__(self, parent = None, singletab = True):
         super(OpenGeoExplorer, self).__init__()  
         self.singletab = singletab      
         self.initGui()
@@ -44,9 +44,7 @@ class OpenGeoExplorer(QtGui.QDockWidget):
         self.progress = None
         self.layout = QtGui.QVBoxLayout()
         self.layout.setSpacing(2)
-        self.layout.setMargin(0)     
-        self.status = QtGui.QLabel()   
-        self.status.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)                                             
+        self.layout.setMargin(0)                                               
         self.layout.addWidget(self.toolbar)
         self.layout.addWidget(self.splitter)     
         self.setLayout(self.layout)
@@ -102,14 +100,7 @@ class OpenGeoExplorer(QtGui.QDockWidget):
         self.explorerWidget.updateQgisContent()
                    
     def run(self, command, msg, refresh, *params):
-        error = False  
-        if self.progressMaximum != 0:
-            self.progressMessageBar = config.iface.messageBar().createMessage("Task", msg)
-            self.progress = QtGui.QProgressBar()
-            self.progress.setMaximum(self.progressMaximum)
-            self.progress.setAlignment(Qt.AlignLeft|Qt.AlignVCenter)
-            self.progressMessageBar.layout().addWidget(self.progress) 
-            config.iface.messageBar().pushWidget(self.progressMessageBar, config.iface.messageBar().INFO)                                     
+        error = False                                   
         QtGui.QApplication.setOverrideCursor(QtGui.QCursor(Qt.WaitCursor))        
         thread = ExplorerThread(command, *params)                
         def finish():
@@ -128,8 +119,7 @@ class OpenGeoExplorer(QtGui.QDockWidget):
         thread.finish.connect(finish)
         thread.error.connect(error)                                         
         thread.start()
-        thread.wait()
-        self.status.setText("")        
+        thread.wait()      
         self.refreshDescription()
         
         return error
@@ -138,18 +128,21 @@ class OpenGeoExplorer(QtGui.QDockWidget):
         config.iface.messageBar().clearWidgets()
         self.isProgressVisible = False
         self.progress = None  
-        self.progressMaximum = 0                 
-        
-    def setStatus(self, text):
-        self.status.setText(text)        
+        self.progressMaximum = 0                    
         
     def setProgress(self, value):
         if self.progress is not None:
             self.progress.setValue(value)        
         
-    def setProgressMaximum(self, value):
+    def setProgressMaximum(self, value, msg = ""):
         self.progressMaximum = value
         self.isProgressVisible = True
+        self.progressMessageBar = config.iface.messageBar().createMessage("Task", msg)
+        self.progress = QtGui.QProgressBar()
+        self.progress.setMaximum(self.progressMaximum)
+        self.progress.setAlignment(Qt.AlignLeft|Qt.AlignVCenter)
+        self.progressMessageBar.layout().addWidget(self.progress) 
+        config.iface.messageBar().pushWidget(self.progressMessageBar, config.iface.messageBar().INFO)   
         
     def setInfo(self, msg, msgtype = INFO):
         print str(self.progressMaximum)

@@ -8,11 +8,14 @@ from opengeo.qgis import layers as qgislayers
 from opengeo.gui.explorertree import ExplorerTreeWidget
 from opengeo.geoserver.gwc import Gwc
 from opengeo.postgis.connection import PgConnection
-from opengeo.gui.pgexploreritems import PgConnectionsItem, PgSchemaItem
+from opengeo.gui.pgexploreritems import PgConnectionsItem, PgSchemaItem,\
+    PgConnectionItem
 from opengeo.gui.qgsexploreritems import QgsProjectItem, QgsGroupItem,\
     QgsLayerItem, QgsStyleItem
 from opengeo.geoserver.wps import Wps
 from dialogs.catalogdialog import DefineCatalogDialog
+from opengeo.gui.dialogs.userpasswd import UserPasswdDialog
+from opengeo.gui.dialogs.pgconnectiondialog import NewPgConnectionDialog
 
 class GsTreePanel(QtGui.QWidget):
     
@@ -102,7 +105,7 @@ class GsTreePanel(QtGui.QWidget):
     def fillTree(self):    
         self.tree.clear() 
         QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor)) 
-        self.explorer.setProgressMaximum(7)      
+        self.explorer.setProgressMaximum(7, "Filling explorer tree")      
         try:
             groups = self.catalog.get_layergroups()
             for group in groups:
@@ -221,7 +224,7 @@ class PgTreePanel(QtGui.QWidget):
         self.comboBox.currentIndexChanged.connect(self.connectionHasChanged)    
         horizontalLayout.addWidget(self.comboBox)
         self.addButton = QtGui.QPushButton()
-        self.addButton.clicked.connect(self.addConnection)
+        self.addButton.clicked.connect(lambda: self.addConnection(explorer))
         addIcon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/add.png")
         self.addButton.setIcon(addIcon)
         self.addButton.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum) 
@@ -237,7 +240,8 @@ class PgTreePanel(QtGui.QWidget):
         verticalLayout.addWidget(self.tree)                
         self.setLayout(verticalLayout)   
         self.populateComboBox()
-        self.refreshContent()     
+        if self.connection is not None and self.connection.isValid:
+            self.refreshContent()     
     
     def populateComboBox(self):
         connections = []
@@ -259,16 +263,36 @@ class PgTreePanel(QtGui.QWidget):
         if connections:
             self.connection = connections[0]
     
-    def addConnection(self):
-        pass
+    def addConnection(self, explorer):
+        dlg = NewPgConnectionDialog(explorer)
+        dlg.exec_()
+        if dlg.conn is not None:
+            self.comboBox.addItem(dlg.conn.name, dlg.conn)
+            self.comboBox.setCurrentIndex(self.comboBox.count()-1)
+            if not self.connection.isValid:
+                self.refreshContent()
+            
     
     def connectionHasChanged(self):        
         self.connection = self.comboBox.itemData(self.comboBox.currentIndex())        
-        self.refreshContent()
+        if self.connection is not None and self.connection.isValid:
+            self.refreshContent()
         
     def refreshContent(self):
         if self.connection is None:
             return
+        
+        if not self.connection.isValid:
+            raise Exception("Test    ")
+            dlg = UserPasswdDialog()
+            dlg.exec_()
+            if dlg.user is None:
+                return
+            self.connection.reconnect(dlg.user, dlg.passwd)            
+            if not self.connection.isValid:
+                QtGui.QMessageBox.warning(None, "Error connecting to DB", "Cannot connect to the database")
+                return 
+
         self.tree.clear()        
         schemas = self.connection.schemas()
         for schema in schemas:
@@ -276,7 +300,9 @@ class PgTreePanel(QtGui.QWidget):
             schemItem.populate()
             self.tree.addTopLevelItem(schemItem)
          
-        
+    def databases(self):
+        return self.connectionsItem.databases
+            
     def currentItem(self):
         self.tree.currentItem()        
                         

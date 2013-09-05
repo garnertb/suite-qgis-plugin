@@ -18,6 +18,7 @@ from opengeo.geogit.diff import TYPE_ADDED, TYPE_MODIFIED
 from dialogs.geogitref import RefDialog
 from opengeo.gui.commitdialog import CommitDialog
 from opengeo.gui.dialogs.twowaydiff import TwoWayDiffViewerDialog
+from opengeo.gui.qgsexploreritems import QgsLayerItem
 
 geogitIcon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/geogit.png")
 repoIcon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/repo.gif")   
@@ -149,7 +150,7 @@ class GeogitRepositoryItem(TreeItem):
     def importData(self, explorer):
         dlg = ImportDialog()
         dlg.exec_()
-        if dlg.layer is not None:                         
+        if dlg.ok:                         
             explorer.run(self.element.importshp, "Import layer into repository", [self.worktreeItem], 
                           exportVectorLayer(dlg.layer), dlg.add, dlg.layer.name())
             
@@ -157,13 +158,64 @@ class GeogitRepositoryItem(TreeItem):
     def importAndCommit(self, explorer):
         dlg = ImportAndCommitDialog()
         dlg.exec_()
-        if dlg.layer is not None:
+        if dlg.message is not None:
             def _importAndCommit():              
                 self.element.importshp(exportVectorLayer(dlg.layer), dest = dlg.layer.name())
                 self.element.add()
                 self.element.commit(dlg.message)
             explorer.run(_importAndCommit, "Import layer into repository and commit", [self]) 
             
+    def acceptDroppedItems(self, tree, explorer, items):        
+        toImport = []
+        for item in items:         
+            if isinstance(item, QgsLayerItem):
+                if item.element.type() == QgsMapLayer.VectorLayer:
+                    toImport.append(item.element)         
+        if toImport:
+            explorer.setProgressMaximum(len(toImport) + 2, "Import layers into repository and commit")            
+            dlg = ImportAndCommitDialog(False)
+            dlg.exec_()
+            if dlg.message is not None:
+                for i, layer in enumerate(toImport):
+                    def _importAndCommit():              
+                        self.element.importshp(exportVectorLayer(layer), dest = layer.name())
+                    explorer.run(_importAndCommit, None, [])             
+                    explorer.setProgress(i + 1)
+                explorer.run(self.element.add, None, [])
+                explorer.setProgress(i + 2)
+                explorer.run(self.element.commit, None, [], dlg.message)
+                explorer.setProgress(i + 3)                                                  
+                explorer.resetActivity()
+                return [self]
+        return []
+    
+    def acceptDroppedUris(self, tree, explorer, uris):       
+        if uris:            
+            files = []
+            for uri in uris:
+                if isinstance(uri, basestring):
+                    file.append(uri)                    
+                else:                                       
+                    files.append(uri.uri) 
+            if len(files) == 0:
+                return []
+            dlg = ImportAndCommitDialog(False)
+            dlg.exec_()
+            if dlg.message is not None:
+                explorer.setProgressMaximum(len(files) + 2, "Import files into repository and commit")                                       
+                for i, filename in enumerate(files):              
+                    explorer.run(self.element.importshp, None, [], exportVectorLayer(filename))
+                    explorer.setProgress(i + 1)
+                explorer.run(self.element.add, None, [])
+                explorer.setProgress(i + 2)
+                explorer.run(self.element.commit, None, [], dlg.message)
+                explorer.setProgress(i + 3)
+                explorer.resetActivity()
+                return [self]
+            return []
+        else:
+            return []     
+                      
     
     def removeRepo(self, explorer):
         del self.parent().repos[self.text(0)]
@@ -206,10 +258,13 @@ class GeogitWorkTreeItem(TreeItem):
             elif t == TYPE_MODIFIED:
                 return "#8b4513"
             else:
-                return "#b22222"
-        for diff in self.diffs:
+                return "#b22222"                            
+        diffs = self.diffs if len(self.diffs) < 100 else self.diffs[0:100]
+        for diff in diffs:
             html += ('<li><b><font color="' + colorFromType(diff.type()) +'">' + diff.path 
                     + '</font></b>  &nbsp;<a href="' + diff.path + '">View change</a></li>\n')
+        if len(self.diffs) > 100:
+            html += "<li><b>Too many changes. Only the first 100 are shown</b></li>"            
             
         return html
     
@@ -224,7 +279,52 @@ class GeogitWorkTreeItem(TreeItem):
         for action in actions:
             if action.text() == url:
                 action.trigger()
-                return    
+                return  
+    
+    def acceptDroppedItems(self, tree, explorer, items):        
+        toImport = []
+        for item in items:         
+            if isinstance(item, QgsLayerItem):
+                if item.element.type() == QgsMapLayer.VectorLayer:
+                    toImport.append(item.element)         
+        if toImport:                    
+            dlg = ImportDialog(False)
+            dlg.exec_()
+            if dlg.ok:
+                explorer.setProgressMaximum(len(toImport), "Import layers into repository")   
+                for i, layer in enumerate(toImport):
+                    def _import():              
+                        self.element.importshp(exportVectorLayer(layer), dest = layer.name())
+                    explorer.run(_import, None, [])             
+                    explorer.setProgress(i + 1)                                                            
+                explorer.resetActivity()
+                return [self]
+        return []
+    
+
+    def acceptDroppedUris(self, tree, explorer, uris):       
+        if uris:            
+            files = []
+            for uri in uris:
+                if isinstance(uri, basestring):
+                    file.append(uri)                    
+                else:                                       
+                    files.append(uri.uri) 
+            if len(files) == 0:
+                return []
+            dlg = ImportDialog(False)
+            dlg.exec_()
+            if dlg.ok:
+                explorer.setProgressMaximum(len(files) + 2, "Import files into repository")                                       
+                for i, filename in enumerate(files):              
+                    explorer.run(self.element.importshp, None, [], exportVectorLayer(filename))
+                    explorer.setProgress(i + 1)                
+                explorer.resetActivity()
+                return [self]
+            return []
+        else:
+            return []     
+                                    
             
     def commit(self, explorer):
         dlg = CommitDialog(self.element)
@@ -260,9 +360,13 @@ class GeogitCommitItem(TreeItem):
                 return "#8b4513"
             else:
                 return "#b22222"
-        for diff in self.element.diffset:
+            
+        diffs = self.element.diffset if len(self.element.diffset) < 100 else self.element.diffset[0:100]
+        for diff in diffs:
             html += ('<li><b><font color="' + colorFromType(diff.type()) +'">' + diff.path 
                     + '</font></b>  &nbsp;<a href="' + diff.path + '">View change</a></li>\n')
+        if len(self.element.diffset) > 100:
+            html += "<li><b>Too many changes. Only the first 100 are shown</b></li>"                 
             
         return html      
 
@@ -286,7 +390,7 @@ class GeogitCommitItem(TreeItem):
         checkoutAction = QtGui.QAction("Checkout this commit", explorer)
         checkoutAction.triggered.connect(lambda: self.checkoutCommit(explorer))        
         resetAction = QtGui.QAction("Reset current branch to this commit...", explorer)
-        resetAction.triggered.connect(lambda: self.reset(explorer))         
+        resetAction.triggered.connect(lambda: self.reset(tree, explorer))         
         tagAction = QtGui.QAction("Create tag at this commit...", explorer)
         tagAction.triggered.connect(lambda: self.createTag(explorer))        
         branchAction = QtGui.QAction("Create branch at this commit...", explorer)
@@ -298,12 +402,12 @@ class GeogitCommitItem(TreeItem):
         repo = self.element.commit.repo
         explorer.run(repo.checkout, "Checkout commit " + ref, [self], ref)
         
-    def reset(self, explorer):
-        value, ok = QtGui.QInputDialog.getItem(self, "Reset", "Select reset mode", ["Soft", "Mixed", "Hard"], current=1, editable=False)
+    def reset(self, tree, explorer):
+        value, ok = QtGui.QInputDialog.getItem(explorer, "Reset", "Select reset mode", ["Soft", "Mixed", "Hard"], current=1, editable=False)
         if ok:
             repo = self.element.commit.repo
             ref = self.element.commit.ref
-            explorer.run(repo.reset, "Reset to commit " + ref, str(value).lower())                     
+            explorer.run(repo.reset, "Reset to commit " + ref, tree.findAllItems(repo), ref, str(value).lower())                     
         
     def compareCommitAndWorkingTree(self, explorer):
         ref = self.element.commit.ref
@@ -323,9 +427,10 @@ class GeogitCommitItem(TreeItem):
                 self.refreshContent(explorer)                
                 
     def createTag(self, explorer):               
-        name, ok = QtGui.QInputDialog.getText(self, 'Tag name','Enter tag name:')        
+        name, ok = QtGui.QInputDialog.getText(explorer, 'Tag name','Enter tag name:')        
         if ok:        
-            self.element.commit.repo.createtag(self.element.commit, str(name))                    
+            explorer.run(self.element.commit.repo.createtag, "Create tag '" + unicode(name) + "'", 
+                         [], self.element.commit, unicode(name))                    
     
     def populate(self):            
         trees = self.element.commit.trees()

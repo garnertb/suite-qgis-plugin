@@ -6,23 +6,14 @@ from qgis.gui import QgsFilterLineEdit
 
 
 class ConfigDialog(QDialog):
-    def __init__(self, toolbox):
-        QDialog.__init__(self)
-        self.setupUi()
-        self.toolbox = toolbox
-        self.groupIcon = QIcon()
-        self.groupIcon.addPixmap(self.style().standardPixmap(QStyle.SP_DirClosedIcon),
-                                 QIcon.Normal, QIcon.Off)
-        self.groupIcon.addPixmap(self.style().standardPixmap(QStyle.SP_DirOpenIcon),
-                                 QIcon.Normal, QIcon.On)
 
+    def __init__(self):
+        QDialog.__init__(self)
+        self.setupUi()        
         if hasattr(self.searchBox, 'setPlaceholderText'):
             self.searchBox.setPlaceholderText(self.tr("Search..."))
-
-        self.searchBox.textChanged.connect(self.fillTree)
+        self.searchBox.textChanged.connect(self.filterTree)
         self.fillTree()
-        self.tree.itemClicked.connect(self.edit)
-        self.tree.itemDoubleClicked.connect(self.edit)
 
     def setupUi(self):        
         self.resize(640, 450)
@@ -47,96 +38,76 @@ class ConfigDialog(QDialog):
 
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
+
+
+    def filterTree(self):
+        text = unicode(self.searchBox.text())
         
-
-
-    def edit(self, item, column):
-        if column > 0:
-            self.tree.editItem(item, column)
-
     def fillTree(self):
         self.items = {}
         self.tree.clear()
-        text = unicode(self.searchBox.text())
-        settings = ProcessingConfig.getSettings()
-        priorityKeys = ['General', "Models", "Scripts"]
-        for group in priorityKeys:
-            groupItem = QTreeWidgetItem()
-            groupItem.setText(0,group)
-            icon = ProcessingConfig.getGroupIcon(group)
-            groupItem.setIcon(0, icon)
-            for setting in settings[group]:
-                if setting.hidden:
-                    continue
-                if text =="" or text.lower() in setting.description.lower():
-                    settingItem = TreeSettingItem(setting, icon)
-                    self.items[setting]=settingItem
-                    groupItem.addChild(settingItem)
-            self.tree.addTopLevelItem(groupItem)
-            if text != "":
-                groupItem.setExpanded(True)
 
-        providersItem = QTreeWidgetItem()
-        providersItem.setText(0, "Providers")
-        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/alg.png")
-        providersItem.setIcon(0, icon)
-        for group in settings.keys():
-            if group in priorityKeys:
-                continue
-            groupItem = QTreeWidgetItem()
-            groupItem.setText(0,group)
-            icon = ProcessingConfig.getGroupIcon(group)
-            groupItem.setIcon(0, icon)
-            for setting in settings[group]:
-                if setting.hidden:
-                    continue
-                if text =="" or text.lower() in setting.description.lower():
-                    settingItem = TreeSettingItem(setting, icon)
-                    self.items[setting]=settingItem
-                    groupItem.addChild(settingItem)
-            if text != "":
-                groupItem.setExpanded(True)
-            providersItem.addChild(groupItem)
-        self.tree.addTopLevelItem(providersItem)
+        generalParams = [("SingleTabUI", "Use single tab UI (requires restart)", True)]
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../../images/opengeo.png")
+        generalItem = self._getItem("General", icon, generalParams)        
+        self.tree.addTopLevelItem(generalItem)
+        
+        gsParams = [("UseRestApi", "Always use REST API for uploads", True)]
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../../images/geoserver.png")
+        gsItem = self._getItem("GeoServer", icon, gsParams)        
+        self.tree.addTopLevelItem(gsItem)
+        
+        geogitParams = [("Active", "Show GeoGit entry (requires restart)", False)]
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../../images/geogit.png")
+        geogitItem = self._getItem("GeoGit", icon, geogitParams)        
+        self.tree.addTopLevelItem(geogitItem)
 
-        self.tree.sortItems(0, Qt.AscendingOrder)
         self.tree.setColumnWidth(0, 400)
 
+    def _getItem(self, name, icon, params):
+        item = QTreeWidgetItem()
+        item.setText(0, name)        
+        item.setIcon(0, icon)
+        for param in params:
+            paramName, paramDescription, defaultValue = param
+            paramName = "/OpenGeo/Settings/" + name + "/" + paramName 
+            subItem = TreeSettingItem(paramName, paramDescription, defaultValue)
+            item.addChild(subItem)
+        return item
+            
+        
     def accept(self):
-        for setting in self.items.keys():
-            if isinstance(setting.value,bool):
-                setting.value = (self.items[setting].checkState(1) == Qt.Checked)
-            elif isinstance(setting.value, (float,int, long)):
-                value = str(self.items[setting].text(1))
-                try:
-                    value = float(value)
-                    setting.value = value
-                except ValueError:
-                    QMessageBox.critical(self,
-                                         self.tr("Wrong value"),
-                                         self.tr("Wrong parameter value:\n%1").arg(value)
-                                        )
-                    return
-            else:
-                setting.value = str(self.items[setting].text(1))
-            ProcessingConfig.addSetting(setting)
-        ProcessingConfig.saveSettings()
-        self.toolbox.updateTree()
-
+        iterator = QtGui.QTreeWidgetItemIterator(self.tree)
+        value = iterator.value()
+        while value:            
+            if hasattr(value, 'saveValue'):
+                value.saveValue()              
+            iterator += 1
+            value = iterator.value()                    
         QDialog.accept(self)
 
 class TreeSettingItem(QTreeWidgetItem):
 
-    def __init__(self, setting, icon):
+    def __init__(self, name, description, defaultValue):
         QTreeWidgetItem.__init__(self)
-        self.setting = setting
-        self.setText(0, setting.description)
-        if isinstance(setting.value,bool):
-            if setting.value:
+        self.name = name
+        self.setText(0, description)        
+        if isinstance(defaultValue,bool):
+            self.value = QSettings().value(name, defaultValue=defaultValue, type=bool)            
+            if self.value:
                 self.setCheckState(1, Qt.Checked)
             else:
                 self.setCheckState(1, Qt.Unchecked)
         else:
+            self.value = QSettings().value(name, defaultValue=defaultValue)
             self.setFlags(self.flags() | Qt.ItemIsEditable)
-            self.setText(1, unicode(setting.value))
-        self.setIcon(0, icon)
+            self.setText(1, unicode(self.value))
+            
+    def saveValue(self):
+        if isinstance(self.value,bool):
+            self.value = self.checkState(1) == Qt.Checked
+        else:
+            self.value = self.text(1)
+        print self.name, str(self.value)
+        QSettings().setValue(self.name, self.value)
+        
