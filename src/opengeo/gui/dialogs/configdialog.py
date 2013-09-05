@@ -42,6 +42,21 @@ class ConfigDialog(QDialog):
 
     def filterTree(self):
         text = unicode(self.searchBox.text())
+        for i in range(self.tree.topLevelItemCount()):
+            item = self.tree.topLevelItem(i)
+            visible = False
+            for j in range(item.childCount()):                                    
+                subitem = item.child(j)
+                itemText = subitem.text(0)                                        
+            if (text.strip() == ""):
+                subitem.setHidden(False)
+                visible = True
+            else:
+                hidden = text not in itemText                        
+                item.setHidden(hidden)
+                visible = visible or not hidden
+            item.setHidden(not visible) 
+            item.setExpanded(visible and text.strip() != "")
         
     def fillTree(self):
         self.items = {}
