@@ -49,7 +49,7 @@ class ExplorerTreeWidget(QtGui.QTreeWidget):
             if (isinstance(item, TreeItem) and hasattr(item, 'populate')): 
                 icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/refresh.png")           
                 refreshAction = QtGui.QAction(icon, "Refresh", self.explorer)
-                refreshAction.triggered.connect(item.refreshContent)
+                refreshAction.triggered.connect(lambda: item.refreshContent(self.explorer))
                 actions.append(refreshAction) 
             self.explorer.setToolbarActions(actions)
     

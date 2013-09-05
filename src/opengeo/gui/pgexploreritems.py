@@ -67,7 +67,12 @@ class PgConnectionItem(TreeItem):
         TreeItem.__init__(self, conn, pgIcon)
         self.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDropEnabled)          
         
+    def refreshContent(self, explorer):
+        self.takeChildren()              
+        self.populate()   
+                
     def populate(self):
+        print self.element.isValid
         if not self.element.isValid:
             dlg = UserPasswdDialog()
             dlg.exec_()
@@ -116,6 +121,8 @@ class PgConnectionItem(TreeItem):
             TreeItem.linkClicked(self, tree, explorer, url)        
              
     def acceptDroppedUris(self, tree, explorer, uris):
+        if not self.element.isValid:
+            return
         if uris:
             files = []
             for uri in uris:
@@ -139,6 +146,8 @@ class PgConnectionItem(TreeItem):
             return []
         
     def acceptDroppedItems(self, tree, explorer, items):
+        if not self.element.isValid:
+            return
         toUpdate = set()
         toImport = []
         for item in items:         
