@@ -11,6 +11,7 @@ The OpenGeo Suite explorer is used to configure the components of the OpenGeo Su
 Version support and limitations
 ********************************
 
+This plugin is targeted at the elements of the OpenGeo Suite, and it is tested with the versions of those element included in the latest release of the Suite (4.0). However, you can use most of the functionality if you are using individual installation of elements such as GeoServer and PostGIS.
 The current version is the plugin is targeted at GeoServer 2.3.x. If you are using an older version, you might encounter some problems, and some elements might not be correctly configured due to differences in the way they are handled by GeoServer or in changes in the REST API that the plugin uses to communicate with GeoServer. Although most things should work fine if connecting to a GeoServer 2.2.x catalog, the following are some of the incompatibilities that have been detected.
 
 - Empty groups. Layers belonging to a group are not found, since the group definition has a different structure
@@ -23,12 +24,14 @@ To check the version of your catalog, just select the catalog in the tree and lo
 
 If you do not see information like that, it is likely that your catalog uses a GeoServer version that doesn't support that operation. In this case, it will not support the other operations that cause problems, so you will probably find some issues when working with the catalog through the plugin.
 
-If the GeoServer instance has the importer community module installed, it can be used to upload data, but it is not required, and full functionality is available without it.
+When connecting to a catalog, the explorer tries to check the version. If it cannot detect the version or it cannot confirm it is the target version, it will ask you before adding the catalog.
 
-In the case of GeoGit, the Suite plugin supports repositories that use GeoGit 1.0 (¿¿¿???)
+.. image:: version_warning.png
+	:align: center
 
 Another important limitation is due to the different versions of the SLD standard that QGIS and GeoServer support. To increase compatibility between them, specific routines have been added to the plugin code. However, in some cases, a style defined in QGIS might not be compatible with the elements supported by GeoServer, and publishing a layer will be done without publishing the corresponding style, but using a default one instead.
 
+This problem exist even when using the Suite GeoServer, but older versions of GeoServer might show more incompatibilities and not validate a large part of the SLD produced by plugin.
 Usage
 ******
 

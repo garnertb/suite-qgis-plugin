@@ -193,11 +193,22 @@ class GsCatalogsItem(GsTreeItem):
         dlg.exec_()
         cat = dlg.getCatalog()        
         if cat is not None:   
+            v = cat.gsversion()
+            supported = v.startswith("2.3") or v.startswith("2.4")
+            if not supported:
+                ret = QtGui.QMessageBox.warning(explorer, "GeoServer catalog definition",
+                                "The specified catalog seems to be running an older version of GeoServer\n"
+                                "That might cause unexpected behaviour.\nDo you want to add the catalog anyway?",
+                                QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,                                
+                                QtGui.QMessageBox.No);
+                if ret == QtGui.QMessageBox.No:
+                    return
+                
             name = dlg.getName()
             i = 2
             while name in self._catalogs.keys():
                 name = dlg.getName() + "_" + str(i)
-                i += 1                                 
+                i += 1
             item = self.getGeoServerCatalogItem(cat, name, explorer)
             if item is not None:
                 self._catalogs[name] = cat
