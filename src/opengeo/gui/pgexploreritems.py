@@ -254,6 +254,16 @@ class PgSchemaItem(TreeItem):
     def newTable(self, explorer):
         dlg = DlgCreateTable(self.element)  
         dlg.exec_()  
+        if dlg.ok:
+            def _create():
+                db = self.element.conn.geodb
+                db.create_table(dlg.name, dlg.fields, dlg.pk)
+                if dlg.useGeomColumn:
+                    db.add_geometry_column(dlg.name, dlg.geomType, self.element.name, dlg.geomColumn, 
+                                                             dlg.geomSrid, dlg.geomDim)
+                    if dlg.useSpatialIndex:
+                        db.create_spatial_index(dlg.name, self.element.name, dlg.geomColumn)
+            explorer.run(_create, "Create PostGIS table", [self])
     
     def acceptDroppedUris(self, tree, explorer, uris):
         if uris:
