@@ -257,10 +257,12 @@ class OGCatalog(object):
             try:
                 sld = layer.default_style.sld_body  
                 sld = adaptGsToQgs(sld)
-                node = QtXml.QDomDocument()  
-                node.setContent(sld)              
-                qgslayer.readSld(node, "")                
-            except Exception, e:        
+                sldfile = tempFilename("sld") 
+                with open(sldfile, 'w') as f:
+                    f.write(sld)             
+                err, msg = qgslayer.loadSldStyle(sldfile)                                             
+            except Exception, e: 
+                print e       
                 err = True
             QgsMapLayerRegistry.instance().addMapLayers([qgslayer])
             if err:

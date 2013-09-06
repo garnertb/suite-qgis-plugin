@@ -71,7 +71,6 @@ class GsTreeItem(TreeItem):
                     if style.name == item.element.name:
                         unused.append(style)      
         toUpdate = set(item.parent() for item in selected)                
-        explorer.setProgressMaximum(len(elements), "Deleting elements")
         progress = 0        
         dependent = self.getDependentElements(elements)
                 
@@ -100,7 +99,8 @@ class GsTreeItem(TreeItem):
         toUpdate.update(unusedToUpdate)
         
         elements[0:0] = dependent 
-        elements.extend(unused)      
+        elements.extend(unused)   
+        explorer.setProgressMaximum(len(elements), "Deleting elements")   
         for element in elements:
             explorer.setProgress(progress)    
             if isinstance(element, GwcLayer):
@@ -656,16 +656,15 @@ class GsLayerItem(GsTreeItem):
             addLayerAction = QtGui.QAction(icon, "Add to current QGIS project", explorer)
             addLayerAction.triggered.connect(lambda: self.addLayerToProject(explorer))
             actions.append(addLayerAction)  
-            publishGeonodeAction = QtGui.QAction(icon, "Publish to Geonode", explorer)
-            publishGeonodeAction.triggered.connect(lambda: self.publishToGeonode(tree, explorer))
-            actions.append(publishGeonodeAction)    
             
         return actions
     
-    def multipleSelectionContextMenuActions(self, tree, explorer, selected):        
-        deleteSelectedAction = QtGui.QAction("Delete", explorer)
+    def multipleSelectionContextMenuActions(self, tree, explorer, selected): 
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/delete.gif")       
+        deleteSelectedAction = QtGui.QAction(icon, "Delete", explorer)
         deleteSelectedAction.triggered.connect(lambda: self.deleteElements(selected, tree, explorer))
-        createGroupAction = QtGui.QAction("Create group...", explorer)
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/group.gif")
+        createGroupAction = QtGui.QAction(icon, "Create group...", explorer)
         createGroupAction.triggered.connect(lambda: self.createGroupFromLayers(selected, tree, explorer))        
         return [deleteSelectedAction, createGroupAction]
                  
@@ -913,7 +912,8 @@ class GsStyleItem(GsTreeItem):
                 return [destinationItem]              
     
     def multipleSelectionContextMenuActions(self, tree, explorer, selected):
-        deleteSelectedAction = QtGui.QAction("Delete", explorer)
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/delete.gif")
+        deleteSelectedAction = QtGui.QAction(icon, "Delete", explorer)
         deleteSelectedAction.triggered.connect(lambda: self.deleteElements(selected, tree, explorer))
         return [deleteSelectedAction]
     
@@ -999,7 +999,8 @@ class GsWorkspaceItem(GsTreeItem):
         return[setAsDefaultAction, deleteWorkspaceAction]
         
     def multipleSelectionContextMenuActions(self, tree, explorer, selected):
-        deleteSelectedAction = QtGui.QAction("Delete", explorer)
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/delete.gif")
+        deleteSelectedAction = QtGui.QAction(icon, "Delete", explorer)
         deleteSelectedAction.triggered.connect(lambda: self.deleteElements(selected, tree, explorer))
         return [deleteSelectedAction]
     
@@ -1061,8 +1062,9 @@ class GsStoreItem(GsTreeItem):
         deleteStoreAction.triggered.connect(lambda: self.deleteStore(tree, explorer))
         return[deleteStoreAction]
                 
-    def multipleSelectionContextMenuActions(self, tree, explorer, selected):        
-        deleteSelectedAction = QtGui.QAction("Delete", explorer)
+    def multipleSelectionContextMenuActions(self, tree, explorer, selected):   
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/delete.gif")     
+        deleteSelectedAction = QtGui.QAction(icon, "Delete", explorer)
         deleteSelectedAction.triggered.connect(lambda: self.deleteElements(selected, tree, explorer))
         return [deleteSelectedAction]
                     
@@ -1171,7 +1173,8 @@ class GwcLayerItem(GsTreeItem):
         return []
         
     def multipleSelectionContextMenuActions(self, tree, explorer, selected):
-        deleteSelectedAction = QtGui.QAction("Delete", explorer)
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/delete.gif")
+        deleteSelectedAction = QtGui.QAction(icon, "Delete", explorer)
         deleteSelectedAction.triggered.connect(lambda: self.deleteElements(selected, tree, explorer))
         return [deleteSelectedAction]
     
