@@ -107,12 +107,16 @@ class QgsLayerItem(TreeItem):
         
         return [publishLayerAction, createStoreFromLayerAction, importToPostGisAction]   
     
-    def multipleSelectionContextMenuActions(self, tree, explorer, selected):        
-        publishLayersAction = QtGui.QAction("Publish to GeoServer...", explorer)
+    def multipleSelectionContextMenuActions(self, tree, explorer, selected):    
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/publish-to-geoserver.png")    
+        publishLayersAction = QtGui.QAction(icon, "Publish to GeoServer...", explorer)
         publishLayersAction.triggered.connect(lambda: self.publishLayers(tree, explorer, selected))
         publishLayersAction.setEnabled(len(explorer.catalogs())>0)        
-        createStoresFromLayersAction= QtGui.QAction("Create stores from layers...", explorer)
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/create-store-from-layer.png") 
+        createStoresFromLayersAction= QtGui.QAction(icon, "Create stores from layers...", explorer)
         createStoresFromLayersAction.triggered.connect(lambda: self.createStoresFromLayers(tree, explorer, selected))
+        createStoresFromLayersAction.setEnabled(len(explorer.catalogs())>0)  
+        
         importToPostGisAction = QtGui.QAction("Import into PostGIS...", explorer)
         importToPostGisAction.triggered.connect(lambda: self.importLayersToPostGis(tree, explorer, selected))
         importToPostGisAction.setEnabled(len(explorer.pgDatabases())>0)  

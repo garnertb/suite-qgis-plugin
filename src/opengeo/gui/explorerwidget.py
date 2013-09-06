@@ -39,7 +39,8 @@ class ExplorerWidget(QtGui.QWidget):
             self.qgsItem.populate()
             self.tree.addTopLevelItem(self.gsItem)                         
             self.tree.addTopLevelItem(self.pgItem)
-            geogitActive = QSettings().value("/OpenGeo/Settings/GeoGit/Active", defaultValue=False)
+            geogitActive = QSettings().value("/OpenGeo/Settings/GeoGit/Active", defaultValue=False,)
+            geogitActive = str(geogitActive).lower() == 'true'
             if geogitActive:
                 self.geogitItem = GeogitRepositoriesItem()
                 self.tree.addTopLevelItem(self.geogitItem)                                      

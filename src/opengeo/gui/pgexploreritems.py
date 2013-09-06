@@ -345,8 +345,9 @@ class PgTableItem(TreeItem):
         vacuumAction.triggered.connect(lambda: self.vacuumTable(explorer))
         return [publishPgTableAction, deleteAction, renameAction, vacuumAction]
            
-    def multipleSelectionContextMenuActions(self, tree, explorer, selected):        
-        deleteAction= QtGui.QAction("Delete", explorer)
+    def multipleSelectionContextMenuActions(self, tree, explorer, selected):   
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/delete.gif")     
+        deleteAction= QtGui.QAction(icon, "Delete", explorer)
         deleteAction.triggered.connect(lambda: self.deleteTables(explorer, selected))   
         return [deleteAction]
                
