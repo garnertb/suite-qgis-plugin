@@ -80,6 +80,22 @@ class Catalog(object):
             return content
         else:
             return "Cannot get information about catalog.\n"
+    
+    def gsversion(self):
+        about_url = self.service_url + "/about/version.xml"
+        response, content = self.http.request(about_url, "GET")
+        if response.status == 200:
+            dom = XML(content)
+            resources = dom.findall("resource")
+            for resource in resources:
+                if resource.attrib["name"] == "GeoServer":
+                    try:
+                        v = resource.find("Version").text
+                        return v
+                    except:
+                        pass
+        
+        return "2.2.x" # just to inform that version < 2.3.x
          
 
     def delete(self, config_object, purge=False, recurse=False):

@@ -27,6 +27,11 @@ To check the version of your catalog, just select the catalog in the tree and lo
 
 If you do not see information like that, it is likely that your catalog uses a GeoServer version that doesn't support that operation. In this case, it will not support those other operations that cause problems, so you will probably find some issues when working with the catalog through the plugin.
 
+When connecting to a catalog, the explorer tries to check the version. If it cannot detect the version or it cannot confirm it is the target version, it will ask you before adding the catalog.
+
+.. image:: version_warning.png
+	:align: center
+
 Another important limitation is due to the different versions of the SLD standard that QGIS and GeoServer support. To increase compatibility between them, specific routines have been added to the plugin code. However, in some cases, a style defined in QGIS might not be compatible with the elements supported by GeoServer, and publishing a layer will be done without publishing the corresponding style, but using a default one instead.
 
 This problem exist even when using the Suite GeoServer, but older versions of GeoServer might show more incompatibilities and not validate a large part of the SLD produced by plugin.
@@ -356,7 +361,6 @@ Below you can find more information about the operations that can be performed t
 - Dragging a GeoServer layer item onto the *GeoWebCache layers* item of the same catalog. It will add the corresponding cached layer for the dragged layer.
 - Dragging a QGIS layer into a PostGIS connection or schema item. It will import the layer into the corresponding PostGIS database. The import dialog is shown before importing.
 - Draggin a PostGIS table item into a GeoServer catalog or workspace item. It will publish a new layer based on that table, using the item workspace or the default workspace in case of dropping onto a catalog item
-- Draggin a layer into a GeoGit repository will cause the layer to be imported and commited. If it is drop on the working tree item if the repository, it will be only iported, but not commited.
 
 
 Multiple elements can be selected and dragged, as long as they are of the same type.
