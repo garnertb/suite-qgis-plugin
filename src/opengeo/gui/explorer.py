@@ -110,7 +110,7 @@ class OpenGeoExplorer(QtGui.QDockWidget):
                     item.refreshContent(self)
             if None in refresh:
                 self.refreshContent()            
-            if msg is not None and self.isProgressVisible:
+            if msg is not None and not self.isProgressVisible:
                 self.setInfo("Operation <i>" + msg + "</i> correctly executed")                
         def error(msg):
             QtGui.QApplication.restoreOverrideCursor()            
