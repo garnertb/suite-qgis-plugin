@@ -82,7 +82,7 @@ class NewPgConnectionDialog(QDialog):
         horizontalLayout.setMargin(0)        
         passwordLabel = QLabel('Password')
         self.passwordBox = QLineEdit() 
-        self.passwordBox.setEchoMode(QLineEdit.PasswordEchoOnEdit)       
+        self.passwordBox.setEchoMode(QLineEdit.Password)       
         horizontalLayout.addWidget(passwordLabel)
         horizontalLayout.addWidget(self.passwordBox)
         self.verticalLayout.addLayout(horizontalLayout)
