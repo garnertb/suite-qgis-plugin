@@ -57,7 +57,7 @@ class DefineCatalogDialog(QtGui.QDialog):
         horizontalLayout.setMargin(0)        
         passwordLabel = QtGui.QLabel('Password')
         self.passwordBox = QtGui.QLineEdit()
-        self.passwordBox.setEchoMode(QtGui.QLineEdit.PasswordEchoOnEdit)
+        self.passwordBox.setEchoMode(QtGui.QLineEdit.Password)
         self.passwordBox.setText('geoserver')
         horizontalLayout.addWidget(passwordLabel)
         horizontalLayout.addWidget(self.passwordBox)

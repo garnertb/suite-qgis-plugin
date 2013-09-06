@@ -27,7 +27,7 @@ class UserPasswdDialog(QtGui.QDialog):
         horizontalLayout.setMargin(0)        
         passwordLabel = QtGui.QLabel('Password')
         self.passwordBox = QtGui.QLineEdit()   
-        self.passwordBox.setEchoMode(QtGui.QLineEdit.PasswordEchoOnEdit)       
+        self.passwordBox.setEchoMode(QtGui.QLineEdit.Password)       
         horizontalLayout.addWidget(passwordLabel)
         horizontalLayout.addWidget(self.passwordBox)
         layout.addLayout(horizontalLayout)
