@@ -43,6 +43,7 @@ class OpenGeoPlugin:
         settings = QSettings()
         singletab = settings.value("/OpenGeo/Settings/General/SingleTabUI", True, bool)        
         self.explorer = OpenGeoExplorer(singletab = singletab)
+        self.explorer.hide() 
         self.iface.addDockWidget(Qt.RightDockWidgetArea, self.explorer)
         self.iface.legendInterface().itemAdded.connect(self.explorer.updateQgisContent)
         self.iface.legendInterface().itemRemoved.connect(self.explorer.updateQgisContent)        
