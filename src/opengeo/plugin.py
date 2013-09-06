@@ -26,25 +26,20 @@ class OpenGeoPlugin:
     def initGui(self):
         self.menu = QMenu(self.iface.mainWindow())
         self.menu.setTitle("OpenGeo")
+                                            
+        self.explorer = OpenGeoExplorer(singletab = True)
+        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.explorer)
+        self.explorer.hide() 
         
         icon = QIcon(os.path.dirname(__file__) + "/images/opengeo.png")
         self.explorerAction = QAction(icon, "OpenGeo Explorer", self.iface.mainWindow())
         self.explorerAction.triggered.connect(self.openExplorer)
         self.menu.addAction(self.explorerAction)
-        
-        icon = QIcon(os.path.dirname(__file__) + "/images/config.png")
-        self.configAction = QAction(icon, "Settings", self.iface.mainWindow())
-        self.configAction.triggered.connect(self.openSettings)
-        self.menu.addAction(self.configAction)
 
         menuBar = self.iface.mainWindow().menuBar()
         menuBar.insertMenu(self.iface.firstRightStandardMenu().menuAction(), self.menu)
-                
-        settings = QSettings()
-        singletab = settings.value("/OpenGeo/Settings/General/SingleTabUI", True, bool)        
-        self.explorer = OpenGeoExplorer(singletab = singletab)
-        self.explorer.hide() 
-        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.explorer)
+
+
         self.iface.legendInterface().itemAdded.connect(self.explorer.updateQgisContent)
         self.iface.legendInterface().itemRemoved.connect(self.explorer.updateQgisContent)        
         
@@ -52,6 +47,4 @@ class OpenGeoPlugin:
         self.explorer.updateQgisContent()
         self.explorer.show()   
         
-    def openSettings(self):
-        dlg = ConfigDialog()
-        dlg.exec_()     
+   

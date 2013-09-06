@@ -11,7 +11,11 @@ The OpenGeo Suite explorer is used to configure the components of the OpenGeo Su
 Version support and limitations
 ********************************
 
-The current version is the plugin is targeted at GeoServer 2.3.x. If you are using an older version, you might encounter some problems, and some elements might not be correctly configured due to differences in the way they are handled by GeoServer or in changes in the REST API that the plugin uses to communicate with GeoServer. Although most things should work fine if connecting to a GeoServer 2.2.x catalog, the following are some of the incompatibilities that have been detected.
+This plugin is targeted at the elements of the OpenGeo Suite, and it is tested with the versions of those element included in the latest release of the Suite (4.0). However, you can use most of the functionality if you are using individual installation of elements such as GeoServer and PostGIS.
+
+There should be no problems using a different version of PostGIs, but the following remarks should be considered when using a separate GeoServer installation.
+
+The current version of the plugin is targeted at GeoServer 2.3.x. If you are using an older version, you might encounter some problems, and some elements might not be correctly configured due to differences in the way they are handled by GeoServer or in changes in the REST API that the plugin uses to communicate with GeoServer. Although most things should work fine if connecting to a GeoServer 2.2.x catalog, the following are some of the incompatibilities that have been detected.
 
 - Empty groups. Layers belonging to a group are not found, since the group definition has a different structure
 - Styles belonging to a given namespace are not found. Only styles with no namespace are reported if using GeoServer 2.2.x
@@ -21,13 +25,11 @@ To check the version of your catalog, just select the catalog in the tree and lo
 .. image:: about.png
 	:align: center
 
-If you do not see information like that, it is likely that your catalog uses a GeoServer version that doesn't support that operation. In this case, it will not support the other operations that cause problems, so you will probably find some issues when working with the catalog through the plugin.
-
-If the GeoServer instance has the importer community module installed, it can be used to upload data, but it is not required, and full functionality is available without it.
-
-In the case of GeoGit, the Suite plugin supports repositories that use GeoGit 1.0 (¿¿¿???)
+If you do not see information like that, it is likely that your catalog uses a GeoServer version that doesn't support that operation. In this case, it will not support those other operations that cause problems, so you will probably find some issues when working with the catalog through the plugin.
 
 Another important limitation is due to the different versions of the SLD standard that QGIS and GeoServer support. To increase compatibility between them, specific routines have been added to the plugin code. However, in some cases, a style defined in QGIS might not be compatible with the elements supported by GeoServer, and publishing a layer will be done without publishing the corresponding style, but using a default one instead.
+
+This problem exist even when using the Suite GeoServer, but older versions of GeoServer might show more incompatibilities and not validate a large part of the SLD produced by plugin.
 
 Usage
 ******
@@ -48,11 +50,10 @@ A *GeoWebCache* branch is found under the *Geoserver catalogs* branch, since Geo
 
 The *GeoServer catalogs* branch contains the catalogs that you are connected to, and with which you can interact from the explorer. It is empty when you start the explorer, and you can add as many connections as you want to it.
 
-The *QGIS Project* branch contains the elements of the current QGIS project. These elements, however, are presented with a structure that differs from the QGIS TOC, and resembles the structure of elements in GeoServer. This way, it is easy to understand the relation between both the QGIS project and the GeoServer Catalogs.
-
 The *PostGIS databases* branch contains a list of all available PostGIS connections in QGIS. Its functionality resembles that of the QGIS built--in DB Manager.
 
-The *GeoGit repositories* branch contains the available GeoGit repositories that have been defined. Like the branch corresponding to GeoServer catalogs, it's empty when you launch the explorer, and you can add as many repositories as needed.
+The *QGIS Project* branch contains the elements of the current QGIS project. These elements, however, are presented with a structure that differs from the QGIS TOC, and resembles the structure of elements in GeoServer. This way, it is easy to understand the relation between both the QGIS project and the GeoServer Catalogs.
+
 
 In the lower part to will see a panel which shows the description of the currently selected item.
 
@@ -60,7 +61,7 @@ In the lower part to will see a panel which shows the description of the current
 .. image:: log.png
 	:align: center
 
-When the explorer window is docked, the description panel is found on its lower the lower part. If you undock the window, it will be placed on the right--hand side of it, to make better use of the available space. The image above shows the undocked configuration.
+When the explorer window is docked, the description panel is found on its lower part. If you undock the window, it will be placed on the right--hand side of it, to make better use of the available space. The image above shows the undocked configuration.
 
 The description panel shows information about the currently selected element, but also contains links to actions that affect or are related to the current element. As an example, below you can see the description panel corresponding to a GeoServer layer element.
 
@@ -97,7 +98,7 @@ When deleting an element with dependencies (i.e. a resource that is used in a la
 .. image:: confirm_delete.png
 	:align: center
 
-If a layer GeoServer layer is deleted and it uses a style with the same name a the layer, the style itself will also be deleted if it is not used by any other layer.
+If a GeoServer layer is deleted and it uses a style with the same name a the layer, the style itself will also be deleted if it is not used by any other layer.
 
 
 Not all layers in a project will appear in the QGIS branch. Layers based on a WMS connection are not included, since, at the moment, there is no possible interaction between them and the remaining element represented in the explorer.
@@ -274,89 +275,6 @@ The following actions are available for items in the PostGIS branch.
 	- *Run vacuum analyze*. Vacuums the table
 
 
-GeoGit repositories
---------------------
-
-GeoGit repositories can be initialized from the Explorer interface, by selecting *Init/create repository*. That will create a new repository in a folder that previously did not contain one, and open it in the explorer so you can start working on it. If the repository has already been created and you want to add it to the explorer and work with it, use the *Add new repository* action.
-
-A geogit repository has an item representing its working tree and a set of items representing the commits in the repository history. TThis history corresponds only to the current HEAD. To see the history of a different branch, you must use the *Checkout* command in the explorer, and the tree will be refreshed to display the new history after the checkout operation has been performed.
-
-
-he following actions are available to work on the repository.
-
-- Repository item
-
-	- *Remove*. Removes the GeoGit repository from the explorer. It does not delete the repository.
-
-	- *Create branch...*. Creates a new branch in the repository. The branch is defined in the following window.
-
-		.. image:: createbranch.png
-			:align: center
-
-		By default, it is created from the current HEAD, but you can select any other branch, tag or commit ID. Commit ID's are introduced manually in the corresponding textbox. Shortened commit IDs are supported.
-
-		If the *force* option is selected, it will be created even if a branch with the specified name already exists. If the *checkout* option is selected, the HEAD of the repostiory will point at the created branch.
-
-	- *Switch/checkout...*. Changes the current HEAD of the repo, so it point to a specified branch, tag or commit. The reference to point to is selected in the following dialog.
-
-	- *Import...*. Imports a QGIS layer into the QGIS working tree. The import is defined using the following dialog.
-	
-		.. image:: import_geogit.png	
-			:align: center
-
-		If no destination tree is specified, the name of the layer will be used as the destination tree. 
-
-		If the *Add* option is selected, the current content of the destination path is not deleted before importing
-
-	- *Import and create new snapshot*. Imports a QGIS layer and commits all the content of the working tree after that. A commit mesage is needed, which is specified in the following import dialog.
-
-		.. image:: import_and_commit.png
-			:align: center
-
-		The name of the layer is used as the destination path. If that path already exists, it will be removed.
-
-		If the working tree is not clean, all unstaged features will be commited as well, so the new snapshot will contain the imported features along with those unstaged ones that existed before the import operation was performed.
-
-- Working tree item. 
-
-	- *Commit...*. Commits the unstaged features in the working tree. The features to commit and the commit message are selected in the following commit dialog
-
-		.. image:: commit.png
-			:align: center
-
-		Changes corresponding to any of the features to commit can be shown by right clicking on the feature name and selecting *View changes...*
-		
-		.. image:: commit_view_changes.png
-			:align: center
-
-- Commit item.
-
-	- *Compare with working tree...*. Compares the selected commit with the current tree. Differences are shown in a dialog like one shown below.
-
-		.. image:: compare_work_tree.png
-			:align: center
-
-		Comparing two arbitrary commits is possible by entering the corresponding references in the text boxes in the upper part of the dialog and clicking on the *Compute diffs* button.
-
-		The differences between a commit and its parent are shown in the description panel when the commit is selected.
-
-		.. image:: commit_changes.png
-			:align: center
-
-	- *Checkout this commit*
-
-	- *Reset current branch to this commit...*. 
-
-	- *Create tag at this commit*
-
-	- *Create branch at this commit*. Similar to the *Create branch* action for a repository item, but in this case the default reference in the branch definition dialog is the selected commit instead of the current head.
-
-
-
-- Path item. Path items are found under comit items, representing all the existing paths in a given snapshot of the repository.
-
-	- *Add as project layer*. A layer with the content of the path at the parent commit is exported and opened in the current QGIS project. A temporary SpatiaLite database is created as an intermediate storage, and will be deleted once GIS is closed. 
-
 QGIS project
 -------------
 
@@ -376,6 +294,8 @@ QGIS project
 		The current symbology is used to create a style that is layer used from the published the layer. In the case of raster layers, since QGIS does not support SLD styling of raster layers, the symbology is not used. A default style is used instead. In the case of 3--band images, a RGB style is used. In the case of single--band layers, a grayscale style is used.
 
 	- *Create store from layer*. Like the command above, but it does not publish or use the styling. 
+
+	- *Import into PostGIS...*. Imports the layer into a PostGIS database.
 
 
 - QGIS group item
@@ -413,6 +333,8 @@ This is the same dialog that appears in case of publishing a group to a GeoServe
 
 Configure the catalog and workspace you want to upload each layer to, and a multiple upload will be executed.
 
+Similar actions exist for importing into PostGIS.
+
 Another task than can be done with a multiple selection is creating a new group. Just select a set of layers, right--click on them and select *Create group...*. A new group will be created with those layers, using the default style of each of them.
 
 Drag & drop operations
@@ -449,6 +371,8 @@ In general, any operation that can be performed draggin a QGIS layer item within
 Also, elements from the explorer can be dropped onto the QGIS canvas. GeoServer layers can be dropped onto the QGIS canvas to add them to the project. The corresponding WFS/WCS layer will be created as in the case of using the *Add to QGIS project* menu option, already described. Notice that, however, the style of the layer will not be used in this case, and the layer that will be added to the QGIs project will have a default style assigned to it.
 
 Dragging and dropping a PostGIS table will cause a new layer to be added to the QGIS project, based on that table.
+
+You can drag multiple elements, as long as they are of the same type (for instance, several layers from the QGIS browser into a PostGIS database element in the explorer, to import them all)
 
 
 

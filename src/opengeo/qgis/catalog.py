@@ -6,18 +6,17 @@ This is supposed to contain the functions to be called when using plugin
 functionality from the QGIS console
 '''
 
-import os
 from qgis.core import *
 from PyQt4.QtXml import *
 from PyQt4.QtCore import *
 from opengeo.qgis import layers, exporter
+from opengeo.qgis.utils import  *
 from opengeo.geoserver.catalog import ConflictingDataError, UploadError
 from opengeo.geoserver.catalog import Catalog as GSCatalog
-from PyQt4 import QtXml
 from opengeo.geoserver import utils
 from opengeo.geoserver.sldadapter import adaptGsToQgs,\
     getGsCompatibleSld
-from opengeo.gsimporter.client import Client
+from opengeo import config
     
 def createGeoServerCatalog(service_url = "http://localhost:8080/geoserver/rest", 
                  username="admin", password="geoserver", disable_ssl_certificate_validation=False):
@@ -32,8 +31,6 @@ class OGCatalog(object):
     
     def __init__(self, catalog):
         self.catalog = catalog
-        #we also create a Client object pointing to the same url
-        self.client = Client(catalog.service_url, catalog.username, catalog.password)
     
     def publishStyle(self, layer, overwrite = False, name = None):
         '''
@@ -80,18 +77,14 @@ class OGCatalog(object):
             
         name = name if name is not None else layer.name()
                     
-        try:
-            settings = QSettings()
-            restApi = bool(settings.value("/OpenGeo/Settings/GeoServer/UseRestApi", True, bool))
+        try:            
             if layer.type() == layer.RasterLayer:                
-                path = self.getDataFromLayer(layer)
-                if restApi:
-                    self.catalog.create_coveragestore(name,
-                                              path,
-                                              workspace=workspace,
-                                              overwrite=overwrite)                            
-                else:
-                    self.client.upload(path)
+                path = self.getDataFromLayer(layer)                
+                self.catalog.create_coveragestore(name,
+                                          path,
+                                          workspace=workspace,
+                                          overwrite=overwrite)                            
+                
                 
             elif layer.type() == layer.VectorLayer:
                 provider = layer.dataProvider()
@@ -109,15 +102,13 @@ class OGCatalog(object):
                                            passwd = uri.password())  
                     self.catalog.create_pg_featuretype(uri.table(), connName, workspace, layer.crs().authid())
                 else:   
-                    path = self.getDataFromLayer(layer)
-                    if restApi:                    
-                        self.catalog.create_shp_featurestore(name,
-                                              path,
-                                              workspace=workspace,
-                                              overwrite=overwrite)
-                    else:
-                        self.client.upload(path['shp'])                          
+                    path = self.getDataFromLayer(layer)             
+                    self.catalog.create_shp_featurestore(name,
+                                          path,
+                                          workspace=workspace,
+                                          overwrite=overwrite)
                     
+                
             else:
                 msg = layer.name() + ' is not a valid raster or vector layer'
                 raise Exception(msg)
@@ -265,7 +256,7 @@ class OGCatalog(object):
             err = False
             try:
                 sld = layer.default_style.sld_body  
-                sld = adaptGsToQgs(sld)              
+                sld = adaptGsToQgs(sld)
                 node = QtXml.QDomDocument()  
                 node.setContent(sld)              
                 qgslayer.readSld(node, "")                
