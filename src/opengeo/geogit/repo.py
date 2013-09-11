@@ -54,6 +54,9 @@ class Repository:
                 return branch
         raise GeoGitException("Specified branch does not exist")
     
+    def clone(self, url):
+        return self.connector.clone(url)
+    
     def createbranch(self, commitish, name, force = False, checkout = False):
         return self.connector.createbranch(commitish, name, force, checkout)
         
@@ -119,6 +122,15 @@ class Repository:
         
     def cherrypick(self, commitish):
         self.connector.cherrypick(commitish)
+        
+    def remotes(self):
+        return self.connector.remotes()
+        
+    def addremote(self, name, url):
+        self.connector.addremote(name, url)
+        
+    def removeremote(self, name):
+        self.connector.removeremote(name)                
     
     def init(self):
         self.connector.init()

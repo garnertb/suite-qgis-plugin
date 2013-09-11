@@ -1,5 +1,6 @@
 import subprocess
 import os
+from os.path import relpath
 from opengeo.geogit.feature import Feature
 from opengeo.geogit.tree import Tree
 from opengeo.geogit.commit import Commit
@@ -13,40 +14,55 @@ from PyQt4.QtGui import *
 from PyQt4 import QtCore, QtGui
 from opengeo import geogit
 
+def _run(command):         
+    cursor = QApplication.overrideCursor()
+    if cursor == None or cursor == 0:
+        changeCursor = True
+    else:
+        changeCursor = cursor.shape() != Qt.WaitCursor                        
+    if changeCursor:
+        QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))  
+                                                                                                        
+    command = ['geogit'] + command
+    print " ".join(command)
+    output = []    
+    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, 
+                            stdin=subprocess.PIPE,stderr=subprocess.STDOUT, universal_newlines=True)
+    first = True
+    for line in iter(proc.stdout.readline, ""):
+        #print line
+        if not first:        
+            line = line.strip("\n")
+            output.append(line)
+        else:
+            first = False
+    returncode = proc.returncode
+    if changeCursor:
+        QtGui.QApplication.restoreOverrideCursor()
+    if returncode:
+        raise GeoGitException("\n".join(output))          
+    return output
+    
 class CLIConnector():
     ''' A connector that calls the cli version of geogit and parses cli output'''
     
     def setRepository(self, repo):
         self.repo = repo        
-        
-    def run(self, command):         
-        cursor = QApplication.overrideCursor()
-        if cursor == None or cursor == 0:
-            changeCursor = True
-        else:
-            changeCursor = cursor.shape() != Qt.WaitCursor                        
-        if changeCursor:
-            QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))                                                                                           
+
+    @staticmethod
+    def clone(url, dest):
+        #=======================================================================
+        # cwd = os.getcwd()
+        # if not url.startswith('http'):
+        #    url = relpath(url, cwd)
+        # dest = relpath(dest, cwd)
+        #=======================================================================
+        commands = ['clone', url, dest]
+        _run(commands)
+                
+    def run(self, command):   
         os.chdir(self.repo.url)
-        command = ['geogit'] + command
-        print " ".join(command)
-        output = []    
-        proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, 
-                                stdin=subprocess.PIPE,stderr=subprocess.STDOUT, universal_newlines=True)
-        first = True
-        for line in iter(proc.stdout.readline, ""):
-            #print line
-            if not first:        
-                line = line.strip("\n")
-                output.append(line)
-            else:
-                first = False
-        returncode = proc.returncode
-        if changeCursor:
-            QtGui.QApplication.restoreOverrideCursor()
-        if returncode:
-            raise GeoGitException("\n".join(output))          
-        return output
+        return _run(command)  
            
     def head(self):
         self.checkisrepo()
@@ -152,6 +168,26 @@ class CLIConnector():
         else:
             return None
 
+    def addremote(self, name, url):
+        commands = ["remote", "add", name, url]
+        self.run(commands)
+        
+    def removeremote(self, name):
+        commands = ["remote", "remove", name]
+        self.run(commands)     
+        
+    def remotes(self):
+        commands = ["remote", "list", "-v"]
+        output = self.run(commands)
+        remotes = []
+        names = []
+        for line in output:
+            tokens = line.split(" ")
+            if tokens[0] not in names:
+                remotes.append((tokens[0], tokens[1]))
+                names.append(tokens[0])
+        return remotes        
+        
     def log(self, ref, path = None):
         logentries = []
         commands = ['rev-list', ref, '--changed']        
@@ -193,6 +229,8 @@ class CLIConnector():
     def tags(self):
         #TODO
         return []
+    
+
     
     def createbranch(self, ref, name, force = False, checkout = False):
         commands = ['branch', name, ref]
@@ -366,4 +404,105 @@ class CLIConnector():
     def init(self):
         self.run(["init"])
         
+        
+
+    
+def _rungui(self, command):
+    ''' run a command showing a progress dialog with the geogit cli output'''                                
+    QtGui.QApplication.setOverrideCursor(QtGui.QCursor(Qt.WaitCursor)) 
+    thread = GeogitThread(command, self.repo.url)
+    dlg = ProgressDialog(thread)                                     
+    thread.start()
+    dlg.exec_()
+    thread.wait()
+    QtGui.QApplication.restoreOverrideCursor()
+    
+    #this is temporarily disabled
+    #if thread.returncode != 1 and not showProgress:
+        #raise GeoGitException("\n".join(thread.output))
+    return thread.output    
+              
+
+class ProgressDialog(QtGui.QDialog):
+    def __init__(self, geogitThread):
+        QtGui.QDialog.__init__(self, None, QtCore.Qt.WindowSystemMenuHint | QtCore.Qt.WindowTitleHint)
+        self.setModal(True)        
+        self.ok = False
+        self.geogitThread = geogitThread
+        self.setupUi()        
+        geogitThread.message.connect(self.message)
+        geogitThread.finish.connect(self.finish)
+        geogitThread.error.connect(self.error)
+
+    def setupUi(self):
+        self.resize(400,300)
+        self.setWindowTitle("Geogit runner")
+        layout = QtGui.QVBoxLayout()
+        self.text = QtGui.QTextEdit()                      
+        self.closeButton = QtGui.QPushButton()
+        self.closeButton.setText("Close")
+        self.closeButton.setEnabled(False)
+        self.closeButton.clicked.connect(self.closeButtonPressed)
+        layout.addWidget(self.text)
+        layout.addWidget(self.closeButton)
+        self.setLayout(layout)
+        QtCore.QMetaObject.connectSlotsByName(self) 
+        
+    def message(self, msg):
+        if "%" in msg:
+            # progress bar
+            pass
+        else:
+            self.text.append(msg)
+        
+    def finish(self):
+        QtGui.QApplication.restoreOverrideCursor()        
+        self.text.append('\n')
+        #=======================================================================
+        # if self.geogitThread.returncode != 0:
+        #    self.text.append('\n<span style="color:red"> GeoGit encountered problems.</span>')
+        # else:
+        #=======================================================================
+        self.text.append('\n<span style="color:blue"> GeoGit was correctly executed.</span>')
+        self.closeButton.setEnabled(True)
+    
+    def error(self):
+        QtGui.QApplication.restoreOverrideCursor()
+        self.text.append('<span style="color:red"> Error while running GeoGit:\n' + self.geogitThread.output[0] +'</span>')
+        self.text.append()
+        self.closeButton.setEnabled(True)
+                    
+    def closeButtonPressed(self):
+        self.close()
+
+class GeogitThread(QtCore.QThread):
+    
+    message = pyqtSignal(str)
+    error = pyqtSignal(str)
+    finish = pyqtSignal()
+            
+    def __init__(self, command, url):
+        QtCore.QThread.__init__(self)       
+        self.command = command       
+        self.url = url                                               
+                
+    def run (self):                
+        try:
+            os.chdir(self.url)
+            command = ['geogit'] + self.command
+            self.message.emit(" ".join(command) + "\n")
+            self.output = []    
+            proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stdin=subprocess.PIPE,stderr=subprocess.PIPE, universal_newlines=True)
+            for line in iter(proc.stdout.readline, ""):       
+                line = line.strip("\n")
+                self.output.append(line)
+                self.message.emit(line)
+                #print line
+            self.returncode = proc.wait()
+            self.finish.emit()
+        except Exception, e:
+            #print e
+            self.returncode = -2            
+            self.output = [str(e)]
+            self.error.emit()        
         

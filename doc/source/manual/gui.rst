@@ -279,12 +279,32 @@ GeoGit repositories
 
 GeoGit repositories can be initialized from the Explorer interface, by selecting *Init/create repository*. That will create a new repository in a folder that previously did not contain one, and open it in the explorer so you can start working on it. If the repository has already been created and you want to add it to the explorer and work with it, use the *Add new repository* action.
 
+To clone a remote repository to a local folder, use the *Clone repository* option.
+
+.. image:: clone.png
+
+
+
 A geogit repository has an item representing its working tree and a set of items representing the commits in the repository history. TThis history corresponds only to the current HEAD. To see the history of a different branch, you must use the *Checkout* command in the explorer, and the tree will be refreshed to display the new history after the checkout operation has been performed.
 
 
 he following actions are available to work on the repository.
 
 - Repository item
+
+	- *Pull* Pulls changes from a remote repository.
+
+		.. image:: pull.png
+
+		You can select a remote from the drop down list, or directly enter a URL
+
+		If the *All branches* checkbox is selected, all branches will be pushed
+
+ 	- *Push* Pushes changes to a remote repository. The push operation is defined in a dialog similar to the dialog used for the pull operation
+
+ 	- *Manage remotes*. Shows the remote manager, which can be used to add/remove named remotes.
+
+ 		.. image:: remotes_manager.png
 
 	- *Remove*. Removes the GeoGit repository from the explorer. It does not delete the repository.
 

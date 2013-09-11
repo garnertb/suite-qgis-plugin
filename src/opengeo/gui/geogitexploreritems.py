@@ -19,6 +19,9 @@ from dialogs.geogitref import RefDialog
 from dialogs.commitdialog import CommitDialog
 from dialogs.twowaydiff import TwoWayDiffViewerDialog
 from opengeo.gui.qgsexploreritems import QgsLayerItem
+from opengeo.gui.dialogs.remoterepodialog import DefineRemoteRepoDialog
+from opengeo.gui.dialogs.pushdialog import PushDialog
+from opengeo.gui.dialogs.remotesdialog import RemotesDialog
 
 geogitIcon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/geogit.png")
 repoIcon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/repo.gif")   
@@ -40,9 +43,29 @@ class GeogitRepositoriesItem(TreeItem):
         icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/add.png")      
         createRepoConnectionAction = QtGui.QAction(icon, "Add new repository...", explorer)
         createRepoConnectionAction.triggered.connect(lambda: self.addGeogitRepo(explorer, False))
-        return [createRepoAction, createRepoConnectionAction]
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/clone.png")      
+        cloneRepoAction = QtGui.QAction(icon, "Clone remote repository...", explorer)
+        cloneRepoAction.triggered.connect(lambda: self.cloneRepo(explorer))
+        return [createRepoAction, createRepoConnectionAction, cloneRepoAction]
 
                               
+    def cloneRepo(self, explorer):
+        dlg = DefineRemoteRepoDialog()
+        dlg.exec_()
+        if dlg.ok:
+            explorer.run(CLIConnector.clone, "Clone remote repo", [], dlg.url, dlg.folder)
+            try:
+                repo = Repository(dlg.folder, CLIConnector(), True)
+            except GeoGitException, e:
+                explorer.setInfo(str(e), 1)
+                return                                                             
+            item = self.getGeogitRepoItem(repo, dlg.name, explorer)
+            if item is not None:                
+                self.repos[dlg.name] = repo                
+                self.addChild(item)
+                self.setExpanded(True)
+            
+                                  
     def addGeogitRepo(self, explorer, init):  
         folder = unicode(QtGui.QFileDialog.getExistingDirectory(explorer, "GeoGit repository folder"));
         if folder != "": 
@@ -58,9 +81,9 @@ class GeogitRepositoriesItem(TreeItem):
                 name = folder_name + "_" + str(i)
                 i += 1                                 
             item = self.getGeogitRepoItem(repo, name, explorer)
-            if item is not None:
+            if item is not None:                
                 self.repos[name] = repo
-                self.addChild(item)
+                self.addChild(item)                
                 self.setExpanded(True)
         
         
@@ -92,19 +115,32 @@ class GeogitRepositoryItem(TreeItem):
             commitItem.setChildIndicatorPolicy(QtGui.QTreeWidgetItem.ShowIndicator)
             self.addChild(commitItem)  
             
-    def contextMenuActions(self, tree, explorer):  
+    def contextMenuActions(self, tree, explorer):
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/push.png")      
+        pushAction = QtGui.QAction(icon, "Push...", explorer)
+        pushAction.triggered.connect(lambda: self.pushRepo(explorer))          
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/pull.png")      
+        pullAction = QtGui.QAction(icon, "Pull...", explorer)
+        pullAction.triggered.connect(lambda: self.pullRepo(explorer))      
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/remotes.gif")      
+        manageRemotesAction = QtGui.QAction(icon, "Manage remotes...", explorer)
+        manageRemotesAction.triggered.connect(self.manageRemotes)    
         icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/delete.gif")      
         removeRepoAction = QtGui.QAction(icon, "Remove", explorer)
         removeRepoAction.triggered.connect(lambda: self.removeRepo(explorer))
-        createBranchAction = QtGui.QAction("Create branch...", explorer)
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/create_branch.png")
+        createBranchAction = QtGui.QAction(icon, "Create branch...", explorer)
         createBranchAction.triggered.connect(lambda: self.createBranch(explorer))
-        checkoutBranchAction = QtGui.QAction("Switch/checkout...", explorer)
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/checkout.png")
+        checkoutBranchAction = QtGui.QAction(icon, "Switch/checkout...", explorer)
         checkoutBranchAction.triggered.connect(lambda: self.checkout(explorer))
-        importAndCommitAction = QtGui.QAction("Import and create new snapshot...", explorer)
-        importAndCommitAction.triggered.connect(lambda: self.importAndCommit(explorer))
-        importAction = QtGui.QAction("Import...", explorer)
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/import_into_geogit.png")
+        importAndCommitAction = QtGui.QAction(icon, "Import and create new snapshot...", explorer)
+        importAndCommitAction.triggered.connect(lambda: self.importAndCommit(explorer))        
+        importAction = QtGui.QAction(icon, "Import...", explorer)
         importAction.triggered.connect(lambda: self.importData(explorer))
-        return[removeRepoAction, createBranchAction, checkoutBranchAction, importAction, importAndCommitAction] 
+        return[pushAction, pullAction, manageRemotesAction, removeRepoAction, createBranchAction, 
+               checkoutBranchAction, importAction, importAndCommitAction] 
     
     def _getDescriptionHtml(self, tree, explorer):                        
         html = u'<div style="background-color:#ffffcc;"><h1>&nbsp; ' + self.text(0) + '</h1></div></br>'                  
@@ -127,6 +163,25 @@ class GeogitRepositoryItem(TreeItem):
             if action.text() == actionName:
                 action.trigger()
                 return     
+
+    def manageRemotes(self):
+        dlg = RemotesDialog(self.element)
+        dlg.exec_()
+        
+    def pullRepo(self, explorer):
+        repo = self.element
+        dlg = PushDialog(repo)
+        dlg.setWindowTitle("Pull")
+        dlg.exec_()
+        if dlg.ok:
+            explorer.run(repo.pull, "Pull from remote repository", [self], dlg.remote, dlg.refspec, dlg.all)
+        
+    def pushRepo(self, explorer):        
+        repo = self.element
+        dlg = PushDialog(repo)
+        dlg.exec_()
+        if dlg.ok:
+            explorer.run(repo.push, "Push to remote repository", [], dlg.remote, dlg.refspec, dlg.all)
         
     def createBranch(self, explorer):
         repo = self.element
@@ -234,8 +289,9 @@ class GeogitWorkTreeItem(TreeItem):
         self.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
           
         
-    def contextMenuActions(self, tree, explorer):      
-        commitAction = QtGui.QAction("Commit", explorer)
+    def contextMenuActions(self, tree, explorer): 
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/commit_op.png")     
+        commitAction = QtGui.QAction(icon, "Commit", explorer)
         commitAction.triggered.connect(lambda: self.commit(explorer))
         commitAction.setEnabled(self.isDirty)
         return[commitAction]  
@@ -374,7 +430,9 @@ class GeogitCommitItem(TreeItem):
         url  = url.toString()
         for diff in self.element.diffset:
             if url == diff.path:             
-                dlg = TwoWayDiffViewerDialog(self.element.commit.repo.getfeaturediffs(geogit.HEAD, geogit.WORK_HEAD, url))                   
+                parentid = "0"*40 if self.element.commit.parent is None else self.element.commit.commitid + "~1"
+                dlg = TwoWayDiffViewerDialog(self.element.commit.repo.getfeaturediffs(
+                                    parentid, self.element.commit.commitid, url))                   
                 dlg.exec_()
                 return            
         actions = self.contextMenuActions(tree, explorer)
@@ -384,16 +442,21 @@ class GeogitCommitItem(TreeItem):
                 return    
                 
     
-    def contextMenuActions(self, tree, explorer): 
-        compareAction = QtGui.QAction("Compare with working tree...", explorer)
-        compareAction.triggered.connect(lambda: self.compareCommitAndWorkingTree(explorer))        
-        checkoutAction = QtGui.QAction("Checkout this commit", explorer)
-        checkoutAction.triggered.connect(lambda: self.checkoutCommit(explorer))        
-        resetAction = QtGui.QAction("Reset current branch to this commit...", explorer)
-        resetAction.triggered.connect(lambda: self.reset(tree, explorer))         
-        tagAction = QtGui.QAction("Create tag at this commit...", explorer)
-        tagAction.triggered.connect(lambda: self.createTag(explorer))        
-        branchAction = QtGui.QAction("Create branch at this commit...", explorer)
+    def contextMenuActions(self, tree, explorer):
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/diff.png") 
+        compareAction = QtGui.QAction(icon, "Compare with working tree...", explorer)
+        compareAction.triggered.connect(lambda: self.compareCommitAndWorkingTree(explorer)) 
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/checkout.png")       
+        checkoutAction = QtGui.QAction(icon, "Checkout this commit", explorer)
+        checkoutAction.triggered.connect(lambda: self.checkoutCommit(explorer))
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/reset.png")        
+        resetAction = QtGui.QAction(icon, "Reset current branch to this commit...", explorer)
+        resetAction.triggered.connect(lambda: self.reset(tree, explorer))
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/tag.gif")         
+        tagAction = QtGui.QAction(icon, "Create tag at this commit...", explorer)
+        tagAction.triggered.connect(lambda: self.createTag(explorer)) 
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/create_branch.png")       
+        branchAction = QtGui.QAction(icon, "Create branch at this commit...", explorer)
         branchAction.triggered.connect(lambda: self.createBranchAtCommit(explorer))
         return [compareAction, checkoutAction, resetAction, tagAction, branchAction]
         
@@ -445,8 +508,9 @@ class GeogitTreeItem(TreeItem):
         TreeItem.__init__(self, tree, treeIcon, tree.path)
         self.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)  
         
-    def contextMenuActions(self, tree, explorer):      
-        addToProjectAction = QtGui.QAction("Add as project layer", explorer)
+    def contextMenuActions(self, tree, explorer):     
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/export_geogit_tree.png") 
+        addToProjectAction = QtGui.QAction(icon, "Add as project layer", explorer)
         addToProjectAction.triggered.connect(lambda: self.addToProject(explorer))
         return[addToProjectAction]                
 
