@@ -82,6 +82,8 @@ class PgConnectionItem(TreeItem):
             if not self.element.isValid:
                 QtGui.QMessageBox.warning(None, "Error connecting to DB", "Cannot connect to the database")
                 return 
+            if self.element not in self.parent().databases:
+                self.parent().databases.append(self.element)
             self.setIcon(0, pgIcon)
         schemas = self.element.schemas()
         for schema in schemas:
