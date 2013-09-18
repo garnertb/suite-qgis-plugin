@@ -6,8 +6,7 @@ class DefineCatalogDialog(QtGui.QDialog):
     
     def __init__(self, parent = None):
         super(DefineCatalogDialog, self).__init__(parent)
-        self.catalog = None
-        self.name = None
+        self.ok = False
         self.initGui()
         
         
@@ -72,21 +71,17 @@ class DefineCatalogDialog(QtGui.QDialog):
         
         self.resize(400,200)
             
-    
-    def getCatalog(self):        
-        return self.catalog
-    
-    def getName(self):
-        return self.name
-    
+       
     def okPressed(self):        
-        self.catalog = Catalog(unicode(self.urlBox.text() + '/rest'), unicode(self.usernameBox.text()), unicode(self.passwordBox.text()))
+        self.url = unicode(self.urlBox.text() + '/rest')
+        self.username = unicode(self.usernameBox.text())
+        self.password = unicode(self.passwordBox.text())
         self.name = unicode(self.nameBox.text())
         settings = QtCore.QSettings()
-        settings.setValue('/OpenGeo/LastCatalogUrl', self.urlBox.text())        
+        settings.setValue('/OpenGeo/LastCatalogUrl', self.urlBox.text()) 
+        self.ok = True       
         self.close()
 
     def cancelPressed(self):
-        self.catalog = None
-        self.name = None
+        self.ok = False        
         self.close()  

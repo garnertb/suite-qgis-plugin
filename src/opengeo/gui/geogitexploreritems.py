@@ -22,6 +22,7 @@ from opengeo.gui.qgsexploreritems import QgsLayerItem
 from opengeo.gui.dialogs.remoterepodialog import DefineRemoteRepoDialog
 from opengeo.gui.dialogs.pushdialog import PushDialog
 from opengeo.gui.dialogs.remotesdialog import RemotesDialog
+from opengeo.gui.dialogs.repoexplorer import RepoExplorer
 
 geogitIcon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/geogit.png")
 repoIcon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/repo.gif")   
@@ -226,11 +227,11 @@ class GeogitRepositoryItem(TreeItem):
             if isinstance(item, QgsLayerItem):
                 if item.element.type() == QgsMapLayer.VectorLayer:
                     toImport.append(item.element)         
-        if toImport:
-            explorer.setProgressMaximum(len(toImport) + 2, "Import layers into repository and commit")            
+        if toImport:                
             dlg = ImportAndCommitDialog(False)
             dlg.exec_()
             if dlg.message is not None:
+                explorer.setProgressMaximum(len(toImport) + 2, "Import layers into repository and commit")    
                 for i, layer in enumerate(toImport):
                     def _importAndCommit():              
                         self.element.importshp(exportVectorLayer(layer), dest = layer.name())
@@ -280,21 +281,31 @@ class GeogitRepositoryItem(TreeItem):
         
 class GeogitWorkTreeItem(TreeItem):
      
-    def __init__(self, repo):
+    def __init__(self, repo):            
         self.diffs = repo.notindatabase();
         self.isDirty = len(self.diffs) > 0 
         text = "Working Tree [NOT CLEAN]" if self.isDirty else "Working Tree"  
         icon = worktreeUncleanIcon if self.isDirty else worktreeCleanIcon                     
         TreeItem.__init__(self, repo, icon, text)
         self.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable)
-          
+        
+    def refresh(self):
+        self.diffs = self.element.notindatabase();
+        self.isDirty = len(self.diffs) > 0 
+        text = "Working Tree [NOT CLEAN]" if self.isDirty else "Working Tree"  
+        icon = worktreeUncleanIcon if self.isDirty else worktreeCleanIcon 
+        self.setIcon(0, icon)
+        self.setText(0, text)           
         
     def contextMenuActions(self, tree, explorer): 
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/browser.png") 
+        browserAction = QtGui.QAction(icon, "Repository browser...", explorer)
+        browserAction.triggered.connect(lambda: openBrowser(explorer, self, self.element, "WORK_HEAD"))
         icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/commit_op.png")     
         commitAction = QtGui.QAction(icon, "Commit", explorer)
         commitAction.triggered.connect(lambda: self.commit(explorer))
         commitAction.setEnabled(self.isDirty)
-        return[commitAction]  
+        return[browserAction, commitAction]  
         
     def refreshContent(self, explorer):
         self.diffs = self.element.notindatabase();
@@ -443,6 +454,10 @@ class GeogitCommitItem(TreeItem):
                 
     
     def contextMenuActions(self, tree, explorer):
+        icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/browser.png") 
+        browserAction = QtGui.QAction(icon, "Repository browser...", explorer)
+        browserAction.triggered.connect(lambda: openBrowser(explorer, self.parent().worktreeItem,
+                                                            self.element.commit.repo, self.element.commit.ref)) 
         icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/diff.png") 
         compareAction = QtGui.QAction(icon, "Compare with working tree...", explorer)
         compareAction.triggered.connect(lambda: self.compareCommitAndWorkingTree(explorer)) 
@@ -458,7 +473,7 @@ class GeogitCommitItem(TreeItem):
         icon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/create_branch.png")       
         branchAction = QtGui.QAction(icon, "Create branch at this commit...", explorer)
         branchAction.triggered.connect(lambda: self.createBranchAtCommit(explorer))
-        return [compareAction, checkoutAction, resetAction, tagAction, branchAction]
+        return [browserAction, compareAction, checkoutAction, resetAction, tagAction, branchAction]
         
     def checkoutCommit(self, explorer):
         ref = self.element.commit.ref
@@ -523,5 +538,8 @@ class GeogitTreeItem(TreeItem):
             layer = QgsVectorLayer(filename, self.element.path, "ogr")   
             QgsMapLayerRegistry.instance().addMapLayers([layer])
             explorer.updateQgisContent()
-        
+    
+def openBrowser(explorer, worktree, repo, commit):
+    dlg = RepoExplorer(explorer, worktree, repo, commit)
+    dlg.exec_()
     

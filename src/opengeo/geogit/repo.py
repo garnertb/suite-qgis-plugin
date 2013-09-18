@@ -32,9 +32,9 @@ class Repository:
         '''returns a set of Feature objects with all the features for the passed ref and path'''          
         return self.connector.features(ref, path)   
     
-    def children(self, tree = geogit.HEAD, path = None): 
+    def children(self, ref = geogit.HEAD, path = None): 
         '''returns a set of Tree and Feature objects with all the trees for the passed ref and path'''          
-        return self.connector.children(tree, path)                   
+        return self.connector.children(ref, path)                   
             
     def master(self):
         return Commitish(self, geogit.MASTER)
@@ -78,8 +78,8 @@ class Repository:
     def conflicts(self):
         return self.connector.conflicts()
     
-    def checkout(self, ref, path):
-        return self.connector.checkout(ref)
+    def checkout(self, ref, paths = None):
+        return self.connector.checkout(ref, paths)
     
     def add(self, paths = []):
         return self.connector.add(paths)
@@ -101,7 +101,7 @@ class Repository:
     
     def reset(self, ref, mode = geogit.RESET_MODE_HARD):
         return self.connector.reset(ref, mode)
-    
+       
     def exportshp(self, ref, shapefile):
         self.connector.exportshp(ref, shapefile)
         
@@ -123,11 +123,14 @@ class Repository:
     def cherrypick(self, commitish):
         self.connector.cherrypick(commitish)
         
+    def show(self, ref):
+        return self.connector.show(ref)
+        
     def remotes(self):
         return self.connector.remotes()
         
     def addremote(self, name, url):
-        self.connector.addremote(name, url)
+        self.connector.addremote(name, url)        
         
     def removeremote(self, name):
         self.connector.removeremote(name)                

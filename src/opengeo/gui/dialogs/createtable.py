@@ -24,8 +24,6 @@ class DlgCreateTable(QDialog):
 
 		self.connect(self.btnAddField, SIGNAL("clicked()"), self.addField)
 		self.connect(self.btnDeleteField, SIGNAL("clicked()"), self.deleteField)
-		#self.connect(self.btnFieldUp, SIGNAL("clicked()"), self.fieldUp)
-		#self.connect(self.btnFieldDown, SIGNAL("clicked()"), self.fieldDown)
 		self.connect(self.chkGeomColumn, SIGNAL("clicked()"), self.updateUi)
 		self.connect(self.table.selectionModel(), SIGNAL("selectionChanged(const QItemSelection &, const QItemSelection &)"), self.updateUiFields)
 		self.connect(self.buttonBox, SIGNAL("accepted()"), self.okPressed)

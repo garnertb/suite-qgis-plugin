@@ -32,6 +32,7 @@ When connecting to a catalog, the explorer tries to check the version. If it can
 Another important limitation is due to the different versions of the SLD standard that QGIS and GeoServer support. To increase compatibility between them, specific routines have been added to the plugin code. However, in some cases, a style defined in QGIS might not be compatible with the elements supported by GeoServer, and publishing a layer will be done without publishing the corresponding style, but using a default one instead.
 
 This problem exist even when using the Suite GeoServer, but older versions of GeoServer might show more incompatibilities and not validate a large part of the SLD produced by plugin.
+
 Usage
 ******
 
@@ -57,13 +58,10 @@ The *PostGIS databases* branch contains a list of all available PostGIS connecti
 
 The *GeoGit repositories* branch contains the available GeoGit repositories that have been defined. Like the branch corresponding to GeoServer catalogs, it's empty when you launch the explorer, and you can add as many repositories as needed.
 
-In the lower part to will see a panel which shows the description of the currently selected item.
-
+In the lower part to will see a panel which shows the description of the currently selected item. When the explorer window is docked, the description panel is found on its lower the lower part. If you undock the window, it will be placed on the right--hand side of it, to make better use of the available space. The image below shows the undocked configuration.
 
 .. image:: log.png
 	:align: center
-
-When the explorer window is docked, the description panel is found on its lower the lower part. If you undock the window, it will be placed on the right--hand side of it, to make better use of the available space. The image above shows the undocked configuration.
 
 The description panel shows information about the currently selected element, but also contains links to actions that affect or are related to the current element. As an example, below you can see the description panel corresponding to a GeoServer layer element.
 
@@ -255,18 +253,23 @@ The following actions are available for items in the PostGIS branch.
 
 	- *Run SQL...*. Run a SQL sentence on the database. Calling this method will show the DB-manager SQL dialog, where the query can be written or a saved one can be open.
 
-	 .. image:: sql_dialog.png
-	 	:align: center
+		.. image:: sql_dialog.png
+	 		:align: center
 
 - PostGIS schema item
 
-	- *New table*. Creates a new table. [TODO: EXTEND THIS]
+	- *New table*. Creates a new table. Creates a new table with the specified structure. The table definition is done in the following dialog.
+
+		.. image:: create_table.png
+			:align: center
+
+
 
 	- *Delete*. Deletes the schema. It has to be empty to be removed. Otherwise, PostGIS will refuse to delete it.
 
 	- *Rename*. Renames the schema.
 
-    - *Import files*. Same as the import command for connection items, but the schema field in the import dialog is not enabled.
+	- *Import files*. Same as the import command for connection items, but the schema field in the import dialog is not enabled.
 
 - PostGIS table item
 
@@ -285,10 +288,10 @@ GeoGit repositories can be initialized from the Explorer interface, by selecting
 To clone a remote repository to a local folder, use the *Clone repository* option.
 
 .. image:: clone.png
+	:align: center
 
 
-
-A geogit repository has an item representing its working tree and a set of items representing the commits in the repository history. TThis history corresponds only to the current HEAD. To see the history of a different branch, you must use the *Checkout* command in the explorer, and the tree will be refreshed to display the new history after the checkout operation has been performed.
+A geogit repository has an item representing its working tree and a set of items representing the commits in the repository history. This history corresponds only to the current HEAD. To see the history of a different branch, you must use the *Checkout* command in the explorer, and the tree will be refreshed to display the new history after the checkout operation has been performed.
 
 
 he following actions are available to work on the repository.
@@ -298,6 +301,7 @@ he following actions are available to work on the repository.
 	- *Pull* Pulls changes from a remote repository.
 
 		.. image:: pull.png
+			:align: center
 
 		You can select a remote from the drop down list, or directly enter a URL
 
@@ -308,6 +312,7 @@ he following actions are available to work on the repository.
  	- *Manage remotes*. Shows the remote manager, which can be used to add/remove named remotes.
 
  		.. image:: remotes_manager.png
+ 			:align: center
 
 	- *Remove*. Removes the GeoGit repository from the explorer. It does not delete the repository.
 
@@ -318,7 +323,7 @@ he following actions are available to work on the repository.
 
 		By default, it is created from the current HEAD, but you can select any other branch, tag or commit ID. Commit ID's are introduced manually in the corresponding textbox. Shortened commit IDs are supported.
 
-		If the *force* option is selected, it will be created even if a branch with the specified name already exists. If the *checkout* option is selected, the HEAD of the repostiory will point at the created branch.
+		If the *force* option is selected, it will be created even if a branch with the specified name already exists. If the *checkout* option is selected, the HEAD of the repository will point at the created branch.
 
 	- *Switch/checkout...*. Changes the current HEAD of the repo, so it point to a specified branch, tag or commit. The reference to point to is selected in the following dialog.
 
@@ -352,6 +357,32 @@ he following actions are available to work on the repository.
 		.. image:: commit_view_changes.png
 			:align: center
 
+	- *Repository browser...*. Shows the repository browser for the current working tree. The browser allows you to explore the content of a the repository at a given version (in this case the current working tree), and looks like shown below.
+
+		.. image:: repo_browser.png
+			:align: center
+
+		You can select a given tree in the left-hand side of the dialog, and its content will be shown on the right-hand side panel. The description of the default feature type for the selected tree is shown at the bottom-left part.
+
+		You can right click on elements in the right-hand side panel, to run the following commands.
+
+			- *Open*. If the element is a tree, it opens the tree and shows it contents in the content panel. If it is a feature, it will open a separate feature dialog viewer, like the one shown below. 
+
+				.. image:: feature_viewer.png
+					:align: center
+
+				Double--clicking on the element also opens it
+
+			- *Add as project layer* (trees only). A layer with the content of the path at the current working tree is exported and opened in the current QGIS project. A temporary SpatiaLite database is created as an intermediate storage, and will be deleted once QGIS is closed.
+
+			- *Blame* (features only). Shows a blame dialog for the selected feature, showing the autorship of changes for the version of that feature in the working tree.
+
+				.. image:: blame.png
+					:align: center
+
+				Click on the row corresponding to a given attribute to see the commit information of the last time that attribute was changed
+
+
 - Commit item.
 
 	- *Compare with working tree...*. Compares the selected commit with the current tree. Differences are shown in a dialog like one shown below.
@@ -366,19 +397,28 @@ he following actions are available to work on the repository.
 		.. image:: commit_changes.png
 			:align: center
 
-	- *Checkout this commit*
+	- *Checkout this commit*. Sets the current head to the specified commit
 
-	- *Reset current branch to this commit...*. 
+	- *Reset current branch to this commit...*.  Resets the repository to this commit. The type of reset to perform is selected in a selection box that will be shown to the user.
 
-	- *Create tag at this commit*
+		.. image:: reset.png
+			:align: center
+
+	- *Create tag at this commit*. Creates a tag at this commit, with the specified name.
+
+		.. image:: tag.png
+			:align: center
 
 	- *Create branch at this commit*. Similar to the *Create branch* action for a repository item, but in this case the default reference in the branch definition dialog is the selected commit instead of the current head.
 
+	- *Repository browser...*. Shows the repository browser, as described already for the case of a working tree item. An additional command is available for feature elements in the repository browser:
+
+		- *Revert to this revision*. Puts the specified feature into the working tree, using the version corresponding to the snapshot currently being explored in the repository explorer. After this operation, the working tree will not be clean, unless the version to which the feature was reverted matches the version previously in the working tree
 
 
-- Path item. Path items are found under comit items, representing all the existing paths in a given snapshot of the repository.
+- Path item. Path items are found under commit items, representing all the existing paths in a given snapshot of the repository.
 
-	- *Add as project layer*. A layer with the content of the path at the parent commit is exported and opened in the current QGIS project. A temporary SpatiaLite database is created as an intermediate storage, and will be deleted once GIS is closed. 
+	- *Add as project layer*. A layer with the content of the path at the parent commit is exported and opened in the current QGIS project. A temporary SpatiaLite database is created as an intermediate storage, and will be deleted once QGIS is closed. 
 
 QGIS project
 -------------
@@ -457,7 +497,7 @@ Below you can find more information about the operations that can be performed t
 - Dragging a GeoServer layer item onto the *GeoWebCache layers* item of the same catalog. It will add the corresponding cached layer for the dragged layer.
 - Dragging a QGIS layer into a PostGIS connection or schema item. It will import the layer into the corresponding PostGIS database. The import dialog is shown before importing.
 - Draggin a PostGIS table item into a GeoServer catalog or workspace item. It will publish a new layer based on that table, using the item workspace or the default workspace in case of dropping onto a catalog item
-- Draggin a layer into a GeoGit repository will cause the layer to be imported and commited. If it is drop on the working tree item if the repository, it will be only iported, but not commited.
+- Draggin a layer into a GeoGit repository will cause the layer to be imported and commited. If it is dropped on the working tree item of the repository, it will be only imported, but not commited.
 
 
 Multiple elements can be selected and dragged, as long as they are of the same type.
@@ -467,11 +507,13 @@ You can also drag elements from elements outside of the explorer itself. For ins
 .. image:: dragdrop_external.png
 	:align: center
 
-In general, any operation that can be performed draggin a QGIS layer item within the Explorer tree can also be performed draggin an element it the QGIS browser that represetns a layer.
+In general, any operation that can be performed dragging a QGIS layer item within the Explorer tree can also be performed draggin an element in the QGIS browser that represents a layer.
 
-Also, elements from the explorer can be dropped onto the QGIS canvas. GeoServer layers can be dropped onto the QGIS canvas to add them to the project. The corresponding WFS/WCS layer will be created as in the case of using the *Add to QGIS project* menu option, already described. Notice that, however, the style of the layer will not be used in this case, and the layer that will be added to the QGIs project will have a default style assigned to it.
+Also, elements from the explorer can be dropped onto the QGIS canvas. GeoServer layers can be dropped onto the QGIS canvas to add them to the project. The corresponding WFS/WCS layer will be created as in the case of using the *Add to QGIS project* menu option, already described. Notice that, however, the style of the layer will not be used in this case, and the layer that will be added to the QGIS project will have a default style assigned to it.
 
 Dragging and dropping a PostGIS table will cause a new layer to be added to the QGIS project, based on that table.
+
+Dragging and dropping a GeoGit tree will not cause a new QGIS layer to be created. The *Add to project* menu has to be used instead on the GeoGit tree.
 
 
 

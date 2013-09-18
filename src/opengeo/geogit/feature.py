@@ -15,7 +15,7 @@ class Feature(object):
         pass
 
     def query(self):
-        self._attributes = self.repo.getfeature(self.path)
+        self._attributes = self.repo.getfeature(self.ref+":"+self.path)
 
     def blame(self):
         return self.repo.blame(self.path)

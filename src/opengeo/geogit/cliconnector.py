@@ -51,12 +51,6 @@ class CLIConnector():
 
     @staticmethod
     def clone(url, dest):
-        #=======================================================================
-        # cwd = os.getcwd()
-        # if not url.startswith('http'):
-        #    url = relpath(url, cwd)
-        # dest = relpath(dest, cwd)
-        #=======================================================================
         commands = ['clone', url, dest]
         _run(commands)
                 
@@ -100,12 +94,12 @@ class CLIConnector():
         commands = ['ls-tree', fullref, "-v"]
         output = self.run(commands)    
         for line in output:
-            if line != '':
+            if line != '':                
                 tokens = line.split(" ")
                 if tokens[1] == "feature":
                     children.append(Feature(self.repo, ref, tokens[3]))
                 elif tokens[1] == "tree":
-                    children.append(Tree(self.repo, ref, line))
+                    children.append(Tree(self.repo, ref, tokens[3]))
         return children   
     
                     
@@ -210,14 +204,15 @@ class CLIConnector():
                 logentries.append(entry)
         return logentries          
     
-    def checkout(self, ref, path = None):
+    def checkout(self, ref, paths = None):
         commands = ['checkout', ref]
-        if path is not None:
-            commands.extend(["-p", path])
+        if paths is not None and len(paths) > 0:            
+            commands.append("-p")
+            commands.extend(paths)
         self.run(commands)
         
     def reset(self, ref, mode = 'hard'):
-        self.run(['reset', ref, "--" + mode])        
+        self.run(['reset', ref, "--" + mode])                    
         
     def branches(self):    
         branches = []        
@@ -379,13 +374,14 @@ class CLIConnector():
             
     def blame(self, path):
         attributes = {}
-        output = self.run(["blame", path, "--porcelain"])
+        output = self.run(["blame", path, "--porcelain"])        
         for line in output:
             tokens = line.split(" ")
             name = tokens[0]
-            value = tokens[-1]
-            commit = Commit(None, tokens[1], None, None, None, tokens[2], int(tokens[4]) + int(tokens[5]), None, None)
-            attributes[name]=(value, commit)   
+            value = " ".join(tokens[6:])
+            commitid = tokens[1]
+            authorname = tokens[2]
+            attributes[name]=(value, commitid, authorname)   
         return attributes 
     
     def merge (self, commitish, nocommit = False, message = None):
@@ -400,6 +396,10 @@ class CLIConnector():
     def cherrypick(self, commitish):
         commands = ["cherry-pick", commitish]
         self.run(commands)
+        
+    def show(self, ref):
+        commands = ["show", ref]
+        return "\n".join(self.run(commands))
     
     def init(self):
         self.run(["init"])
