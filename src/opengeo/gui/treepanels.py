@@ -16,6 +16,7 @@ from opengeo.geoserver.wps import Wps
 from dialogs.catalogdialog import DefineCatalogDialog
 from opengeo.gui.dialogs.userpasswd import UserPasswdDialog
 from opengeo.gui.dialogs.pgconnectiondialog import NewPgConnectionDialog
+from opengeo.geoserver.catalog import Catalog
 
 class GsTreePanel(QtGui.QWidget):
     
@@ -48,7 +49,7 @@ class GsTreePanel(QtGui.QWidget):
         horizontalLayout.addWidget(self.addButton)        
         verticalLayout.addLayout(horizontalLayout)
         self.toptoolbar = QtGui.QToolBar()
-        self.toptoolbar.setToolButtonStyle(QtCore.Qt.ToolButtonTextOnly)
+        self.toptoolbar.setToolButtonStyle(QtCore.Qt.ToolButtonIconOnly)
         self.toptoolbar.setVisible(False)
         verticalLayout.addWidget(self.toptoolbar)
         self.tree = ExplorerTreeWidget(self.explorer)        
@@ -180,27 +181,42 @@ class GsTreePanel(QtGui.QWidget):
             
     def addCatalog(self, explorer):         
         dlg = DefineCatalogDialog()
-        dlg.exec_()
-        cat = dlg.getCatalog()        
-        if cat is not None:   
-            name = dlg.getName()
-            i = 2
-            while name in self.catalogs.keys():
-                name = dlg.getName() + "_" + str(i)
-                i += 1                                             
-            self.catalogs[name] = cat   
-            self.catalog = cat      
-            self.comboBox.addItem(name, cat)            
-            self.layersAction.setEnabled(True)
-            self.workspacesAction.setEnabled(True)
-            self.stylesAction.setEnabled(True)
-            self.groupsAction.setEnabled(True)
-            self.gwcAction.setEnabled(True)
-            self.wpsAction.setEnabled(True)
-            self.refreshButton.setEnabled(True)
-            self.fillTree()
-            self.layersAction.trigger()  
-                   
+        dlg.exec_()        
+        if dlg.ok:
+            try:
+                cat = Catalog(dlg.url, dlg.username, dlg.password)               
+                v = cat.gsversion()
+                supported = v.startswith("2.3") or v.startswith("2.4")
+                if not supported:
+                    ret = QtGui.QMessageBox.warning(explorer, "GeoServer catalog definition",
+                                    "The specified catalog seems to be running an older version of GeoServer\n"
+                                    "That might cause unexpected behaviour.\nDo you want to add the catalog anyway?",
+                                    QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,                                
+                                    QtGui.QMessageBox.No);
+                    if ret == QtGui.QMessageBox.No:
+                        return
+                name = dlg.name
+                i = 2
+                while name in self.catalogs.keys():
+                    name = dlg.getName() + "_" + str(i)
+                    i += 1                                             
+                self.catalogs[name] = cat   
+                self.catalog = cat      
+                self.comboBox.addItem(name, cat)            
+                self.layersAction.setEnabled(True)
+                self.workspacesAction.setEnabled(True)
+                self.stylesAction.setEnabled(True)
+                self.groupsAction.setEnabled(True)
+                self.gwcAction.setEnabled(True)
+                self.wpsAction.setEnabled(True)
+                self.refreshButton.setEnabled(True)
+                self.fillTree()
+                self.layersAction.trigger() 
+                self.explorer.updateQgisContent() 
+            except Exception, e:
+                explorer.setInfo(str(e), 1)
+                return                   
+    
     def refreshContent(self):
         self.fillTree()   
         self.toggleVisibility(self.visibleItems, self.visibleActions)                           
@@ -314,9 +330,15 @@ class QgsTreePanel(QtGui.QWidget):
         self.projectItem = QgsProjectItem()                    
         verticalLayout = QtGui.QVBoxLayout()
         verticalLayout.setSpacing(2)
-        verticalLayout.setMargin(0)              
-        self.tree = ExplorerTreeWidget(self.explorer)        
+        verticalLayout.setMargin(0)         
+        self.toptoolbar = QtGui.QToolBar()
+        self.toptoolbar.setToolButtonStyle(QtCore.Qt.ToolButtonIconOnly)        
+        verticalLayout.addWidget(self.toptoolbar)     
+        self.tree = ExplorerTreeWidget(self.explorer)               
         verticalLayout.addWidget(self.tree)        
+        actions = self.projectItem.contextMenuActions(self.tree, explorer)
+        for action in actions:
+            self.toptoolbar.addAction(action)        
         self.toolbar = QtGui.QToolBar()
         self.toolbar.setToolButtonStyle(QtCore.Qt.ToolButtonIconOnly)
         layersIcon = QtGui.QIcon(os.path.dirname(__file__) + "/../images/layer.png")
@@ -371,6 +393,10 @@ class QgsTreePanel(QtGui.QWidget):
         self.lastAction = self.sender()                                   
             
     def refreshContent(self):
+        self.toptoolbar.clear()
+        actions = self.projectItem.contextMenuActions(self.tree, self.explorer)
+        for action in actions:
+            self.toptoolbar.addAction(action)
         action = self.lastAction
         self.lastAction = None
         if action is not None:

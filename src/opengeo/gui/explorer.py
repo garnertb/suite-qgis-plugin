@@ -18,7 +18,8 @@ class OpenGeoExplorer(QtGui.QDockWidget):
         self.singletab = singletab      
         self.initGui()
         
-    def initGui(self): 
+    def initGui(self):
+        self.explorerWidget = None 
         self.progressMaximum = 0   
         self.isProgressVisible = False
         self.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)  
@@ -88,6 +89,8 @@ class OpenGeoExplorer(QtGui.QDockWidget):
         self.refreshDescription()
         
     def catalogs(self):        
+        if self.explorerWidget is None:
+            return {}
         return self.explorerWidget.catalogs()
     
     def geogitRepositories(self):

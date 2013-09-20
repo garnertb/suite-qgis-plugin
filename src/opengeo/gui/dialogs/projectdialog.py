@@ -14,7 +14,7 @@ class PublishProjectDialog(QtGui.QDialog):
     def initGui(self):                         
         layout = QtGui.QVBoxLayout()                                
         buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Close)        
-        self.setWindowTitle('Publish layer')
+        self.setWindowTitle('Publish project')
                  
         
         verticalLayout = QtGui.QVBoxLayout()
