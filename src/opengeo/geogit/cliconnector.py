@@ -30,7 +30,6 @@ def _run(command):
                             stdin=subprocess.PIPE,stderr=subprocess.STDOUT, universal_newlines=True)
     first = True
     for line in iter(proc.stdout.readline, ""):
-        #print line
         if not first:        
             line = line.strip("\n")
             output.append(line)
@@ -497,11 +496,9 @@ class GeogitThread(QtCore.QThread):
                 line = line.strip("\n")
                 self.output.append(line)
                 self.message.emit(line)
-                #print line
             self.returncode = proc.wait()
             self.finish.emit()
         except Exception, e:
-            #print e
             self.returncode = -2            
             self.output = [str(e)]
             self.error.emit()        

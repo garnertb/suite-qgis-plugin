@@ -123,6 +123,5 @@ class TreeSettingItem(QTreeWidgetItem):
             self.value = self.checkState(1) == Qt.Checked
         else:
             self.value = self.text(1)
-        print self.name, str(self.value)
         QSettings().setValue(self.name, self.value)
         

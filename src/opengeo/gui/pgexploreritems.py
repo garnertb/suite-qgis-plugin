@@ -72,7 +72,6 @@ class PgConnectionItem(TreeItem):
         self.populate()   
                 
     def populate(self):
-        print self.element.isValid
         if not self.element.isValid:
             dlg = UserPasswdDialog()
             dlg.exec_()
@@ -291,14 +290,12 @@ class PgSchemaItem(TreeItem):
             return []    
         
     def acceptDroppedItems(self, tree, explorer, items):
-        print str(items)
         toUpdate = set()
         toImport = []
         for item in items:                   
             if isinstance(item, QgsLayerItem):
                 if item.element.type() == QgsMapLayer.VectorLayer:
                     toImport.append(item.element)
-        print toImport
         if toImport:
             dlg = ImportIntoPostGISDialog(explorer.pgDatabases(), self.element.conn, schema = self.element, toImport = toImport)
             dlg.exec_()

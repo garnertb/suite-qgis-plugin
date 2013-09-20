@@ -644,13 +644,10 @@ class Catalog(object):
 
     def set_default_workspace(self, name):
         workspace = self.get_workspace(name)
-        print workspace.name
-        print workspace.message()
         if workspace is not None:            
             headers = { "Content-Type": "application/xml" }
             default_workspace_url = self.service_url + "/workspaces/default.xml"            
             headers, response = self.http.request(default_workspace_url, "PUT", workspace.message(), headers)
-            print headers, response
             assert 200 <= headers.status < 300, "Error setting default workspace: " + str(headers.status) + ": " + response
             self._cache.clear()
             

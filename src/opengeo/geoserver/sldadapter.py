@@ -8,7 +8,6 @@ import os
 from PyQt4.QtXml import *
 
 def adaptQgsToGs(sld, layer):
-    #print sld
     sld = sld.replace("se:SvgParameter","CssParameter")
     sld = sld.replace("1.1.","1.0.")
     sld = sld.replace("\t","")
@@ -19,8 +18,7 @@ def adaptQgsToGs(sld, layer):
     if layer.hasScaleBasedVisibility():
         s = ("<MinScaleDenominator>" + str(layer.minimumScale()) + 
         "</MinScaleDenominator><MaxScaleDenominator>" + str(layer.maximumScale()) + "</MaxScaleDenominator>")
-        sld = sld.replace("<se:Rule>", "<se:Rule>" + s)
-    #print sld        
+        sld = sld.replace("<se:Rule>", "<se:Rule>" + s)      
     
     return sld
 

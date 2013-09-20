@@ -270,8 +270,7 @@ class OGCatalog(object):
                 with open(sldfile, 'w') as f:
                     f.write(sld)             
                 err, msg = qgslayer.loadSldStyle(sldfile)                                             
-            except Exception, e: 
-                print e       
+            except Exception, e:       
                 err = True
             QgsMapLayerRegistry.instance().addMapLayers([qgslayer])
             if err:

@@ -100,7 +100,6 @@ class FeatureViewer(QtGui.QDialog):
             value = self.feature.attributes()[idx]
             self.geom = QgsGeometry.fromWkt(value[1])            
         except Exception, e:
-            print e          
             self.geom = None            
             
         self.setMap()
