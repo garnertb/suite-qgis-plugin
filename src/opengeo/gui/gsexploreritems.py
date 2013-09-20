@@ -105,11 +105,11 @@ class GsTreeItem(TreeItem):
             explorer.setProgress(progress)    
             if isinstance(element, GwcLayer):
                 explorer.run(element.delete,
-                     None,#"Delete " + element.__class__.__name__ + " '" + element.name + "'",
+                     None,
                      [])                      
             else:                                     
                 explorer.run(element.catalog.delete,
-                     None,#"Delete " + element.__class__.__name__ + " '" + element.name + "'",
+                     None,
                      [], 
                      element, isinstance(element, Style))  
             progress += 1
@@ -120,6 +120,7 @@ class GsTreeItem(TreeItem):
         if None in toUpdate:
             explorer.refreshContent()
         explorer.resetActivity()
+        explorer.setDescriptionWidget()
     
     def uniqueStyles(self, layer):
         '''returns the styles used by a layer that are not used by any other layer'''
