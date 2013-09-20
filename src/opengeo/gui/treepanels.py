@@ -86,14 +86,30 @@ class GsTreePanel(QtGui.QWidget):
         self.groupsAction.setEnabled(False)
         self.gwcAction.setEnabled(False)
         self.wpsAction.setEnabled(False)
-        self.toolbar.addAction(self.layersAction)
-        self.toolbar.addAction(self.workspacesAction)
-        self.toolbar.addAction(self.stylesAction)
-        self.toolbar.addAction(self.groupsAction)
-        self.toolbar.addAction(self.gwcAction)
-        self.toolbar.addAction(self.wpsAction)
+        self.updateActionButtons()
+            
+        #=======================================================================
+        # self.toolbar.addAction(self.layersAction)
+        # self.toolbar.addAction(self.workspacesAction)
+        # self.toolbar.addAction(self.stylesAction)
+        # self.toolbar.addAction(self.groupsAction)
+        # self.toolbar.addAction(self.gwcAction)
+        # self.toolbar.addAction(self.wpsAction)
+        #=======================================================================
         verticalLayout.addWidget(self.toolbar)
-        self.setLayout(verticalLayout)                
+        self.setLayout(verticalLayout)    
+        
+    def updateActionButtons(self):
+        actions = [self.layersAction, self.workspacesAction, self.stylesAction, 
+                   self.groupsAction, self.gwcAction, self.wpsAction]
+        self.toolbar.clear()
+        for action in actions:   
+            button = QtGui.QPushButton()
+            button.setIcon(action.icon())
+            button.setToolTip(action.text())
+            button.setEnabled(action.isEnabled())
+            button.clicked.connect(action.trigger)                           
+            self.toolbar.addWidget(button)            
     
     def catalogHasChanged(self):
         self.catalog = self.comboBox.itemData(self.comboBox.currentIndex())
@@ -173,8 +189,17 @@ class GsTreePanel(QtGui.QWidget):
             item.setHidden(not isinstance(item, visibleItems))
         self.toptoolbar.setVisible(len(visibleActions)>0)
         self.toptoolbar.clear()
-        for action in visibleActions:
-            self.toptoolbar.addAction(action)
+        for action in visibleActions:   
+            button = QtGui.QPushButton()
+            button.setIcon(action.icon())
+            button.setToolTip(action.text())
+            button.setEnabled(action.isEnabled())
+            button.clicked.connect(action.trigger)                           
+            self.toptoolbar.addWidget(button)
+        #=======================================================================
+        # for action in visibleActions:
+        #    self.toptoolbar.addAction(action)
+        #=======================================================================
         self.visibleItems = visibleItems
         self.visibleActions = visibleActions
 
@@ -202,7 +227,7 @@ class GsTreePanel(QtGui.QWidget):
                     i += 1                                             
                 self.catalogs[name] = cat   
                 self.catalog = cat      
-                self.comboBox.addItem(name, cat)            
+                self.comboBox.addItem(name, cat)                          
                 self.layersAction.setEnabled(True)
                 self.workspacesAction.setEnabled(True)
                 self.stylesAction.setEnabled(True)
@@ -210,6 +235,8 @@ class GsTreePanel(QtGui.QWidget):
                 self.gwcAction.setEnabled(True)
                 self.wpsAction.setEnabled(True)
                 self.refreshButton.setEnabled(True)
+                self.updateActionButtons()
+                
                 self.fillTree()
                 self.layersAction.trigger() 
                 self.explorer.updateQgisContent() 

@@ -25,8 +25,8 @@ class ExplorerWidget(QtGui.QWidget):
             self.tabbedPanel = QtGui.QTabWidget()                                                               
             self.tabbedPanel.setVisible(True)
             verticalLayout.addWidget(self.tabbedPanel)  
-            self.toolbar = QtGui.QToolBar()
-            self.toolbar.setToolButtonStyle(Qt.ToolButtonIconOnly)                      
+            #self.toolbar = QtGui.QToolBar()
+            #self.toolbar.setToolButtonStyle(Qt.ToolButtonIconOnly)                      
         self.setLayout(verticalLayout)
         self.fillData()
         

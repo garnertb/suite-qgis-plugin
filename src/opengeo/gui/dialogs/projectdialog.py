@@ -14,11 +14,8 @@ class PublishProjectDialog(QtGui.QDialog):
     def initGui(self):                         
         layout = QtGui.QVBoxLayout()                                
         buttonBox = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Close)        
-        self.setWindowTitle('Publish project')
-                 
-        
-        verticalLayout = QtGui.QVBoxLayout()
-        
+        self.setWindowTitle('Publish project')                         
+        verticalLayout = QtGui.QVBoxLayout()        
         horizontalLayout = QtGui.QHBoxLayout()
         horizontalLayout.setSpacing(30)
         horizontalLayout.setMargin(0)        
