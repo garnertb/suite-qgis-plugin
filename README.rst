@@ -34,4 +34,4 @@ The plugin repository is updated frequently- However, it is not guaranteed that 
 Usage
 ------
 
-The plugin functionality is accessed through the GeoServer Explorer, which is documented `here <./doc/source/gui.rst>`_
+The plugin functionality is accessed through the GeoServer Explorer, which is documented `here <./doc/source/manual/gui.rst>`_
