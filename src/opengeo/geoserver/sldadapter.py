@@ -19,8 +19,46 @@ def adaptQgsToGs(sld, layer):
         s = ("<MinScaleDenominator>" + str(layer.minimumScale()) + 
         "</MinScaleDenominator><MaxScaleDenominator>" + str(layer.maximumScale()) + "</MaxScaleDenominator>")
         sld = sld.replace("<se:Rule>", "<se:Rule>" + s)      
-    
+    labeling = bool(str(layer.customProperty("labeling/enabled")))
+    if labeling:
+        s = getLabelingAsSld(layer)
+        sld = sld.replace("<se:Rule>", "<se:Rule>" + s)
+    sld = sld.replace("se:", "sld:")
+    print sld
     return sld
+
+def getLabelingAsSld(layer):
+    s = "<TextSymbolizer><Label>"
+    s += "<ogc:PropertyName>" + layer.customProperty("labeling/fieldName") + "</ogc:PropertyName>"
+    s += "</Label>"
+    r = int(layer.customProperty("labeling/textColorR"))
+    g = int(layer.customProperty("labeling/textColorG"))
+    b = int(layer.customProperty("labeling/textColorB"))
+    rgb = '#%02x%02x%02x' % (r, g, b)
+    s += '<Fill><CssParameter name="fill">' + rgb + "</CssParameter></Fill>"
+    s += "<Font>"
+    s += '<CssParameter name="font-family">' + layer.customProperty("labeling/fontFamily") +'</CssParameter>'
+    s += '<CssParameter name="font-size">' + str(layer.customProperty("labeling/fontSize")) +'</CssParameter>'
+    if bool(layer.customProperty("labeling/fontItalic")):
+        s += '<CssParameter name="font-style">italic</CssParameter>'
+    if bool(layer.customProperty("labeling/fontBold")):
+        s += '<CssParameter name="font-weight">bold</CssParameter>'        
+    s += "</Font>"  
+    s += "<LabelPlacement>"
+    s += ("<PointPlacement>"
+            "<AnchorPoint>"
+            "<AnchorPointX>0.5</AnchorPointX>"
+            "<AnchorPointY>0.5</AnchorPointY>"
+            "</AnchorPoint>")
+    s += "<Displacement>"
+    s += "<DisplacementX>" + str(layer.customProperty("labeling/xOffset")) + "0</DisplacementX>"
+    s += "<DisplacementY>" + str(layer.customProperty("labeling/yOffset")) + "0</DisplacementY>"
+    s += "</Displacement>"
+    s += "<Rotation>" + str(layer.customProperty("labeling/angleOffset")) + "</Rotation>"
+    s += "</PointPlacement></LabelPlacement>"  
+    s +="</TextSymbolizer>"
+    return s
+         
 
 def adaptGsToQgs(sld):
     return sld
@@ -42,7 +80,7 @@ def getStyleAsSld(layer):
         root.setAttribute( "version", "1.1.0" )
         root.setAttribute( "xsi:schemaLocation", "http://www.opengis.net/sld http://schemas.opengis.net/sld/1.1.0/StyledLayerDescriptor.xsd" )
         root.setAttribute( "xmlns:ogc", "http://www.opengis.net/ogc" )
-        root.setAttribute( "xmlns:se", "http://www.opengis.net/se" )
+        root.setAttribute( "xmlns:sld", "http://www.opengis.net/sld" )
         root.setAttribute( "xmlns:xlink", "http://www.w3.org/1999/xlink" )
         root.setAttribute( "xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance" )
         document.appendChild( root )
@@ -52,7 +90,9 @@ def getStyleAsSld(layer):
                 
         errorMsg = ""
                 
-        layer.writeSld(namedLayerNode, document, errorMsg)                        
+        layer.writeSld(namedLayerNode, document, errorMsg)    
+        
+                            
         
         return unicode(document.toString(4))
     elif layer.type() == layer.RasterLayer: 

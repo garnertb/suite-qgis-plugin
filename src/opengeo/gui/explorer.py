@@ -85,7 +85,7 @@ class OpenGeoExplorer(QtGui.QDockWidget):
         self.toolbar.update()
                     
     def refreshContent(self):
-        self.explorerWidget.refreshContent(self)
+        self.explorerWidget.refreshContent()
         self.refreshDescription()
         
     def catalogs(self):        
